@@ -59,7 +59,7 @@ if (!LANG_NAMES[currentLang]) currentLang = 'chs';
 // ---- UI translations (kept in sync with WBArts terminology) ----
 const UI = {
   chs: {
-    brand: "制卡器",
+    brand: "制卡器", backToWba: "返回 WBA",
     basicInfo: "基础信息", cardName: "卡名", cardNamePh: "卡牌名称",
     classLabel: "职业", specialFrame: "特殊框", kindLabel: "种类", rarityLabel: "稀有度",
     cost: "费用", attack: "攻击", defense: "体力",
@@ -71,7 +71,7 @@ const UI = {
     normal: "普通", langTitle: "切换语言 / Language",
   },
   eng: {
-    brand: "Card Maker",
+    brand: "Card Maker", backToWba: "Back to WBA",
     basicInfo: "Basic Info", cardName: "Card Name", cardNamePh: "Card name",
     classLabel: "Class", specialFrame: "Special Frame", kindLabel: "Type", rarityLabel: "Rarity",
     cost: "Cost", attack: "Attack", defense: "Defense",
@@ -83,7 +83,7 @@ const UI = {
     normal: "Normal", langTitle: "Switch language / 语言",
   },
   jpn: {
-    brand: "カードメーカー",
+    brand: "カードメーカー", backToWba: "WBAに戻る",
     basicInfo: "基本情報", cardName: "カード名", cardNamePh: "カード名",
     classLabel: "クラス", specialFrame: "特殊フレーム", kindLabel: "種類", rarityLabel: "レアリティ",
     cost: "コスト", attack: "攻撃力", defense: "体力",
@@ -95,7 +95,7 @@ const UI = {
     normal: "通常", langTitle: "言語切替 / Language",
   },
   kor: {
-    brand: "카드 메이커",
+    brand: "카드 메이커", backToWba: "WBA로 돌아가기",
     basicInfo: "기본 정보", cardName: "카드 이름", cardNamePh: "카드 이름",
     classLabel: "클래스", specialFrame: "특수 프레임", kindLabel: "종류", rarityLabel: "레어도",
     cost: "코스트", attack: "공격력", defense: "생명력",
@@ -107,7 +107,7 @@ const UI = {
     normal: "일반", langTitle: "언어 전환 / Language",
   },
   cht: {
-    brand: "製卡器",
+    brand: "製卡器", backToWba: "返回 WBA",
     basicInfo: "基礎資訊", cardName: "卡名", cardNamePh: "卡牌名稱",
     classLabel: "職業", specialFrame: "特殊框", kindLabel: "種類", rarityLabel: "稀有度",
     cost: "費用", attack: "攻擊", defense: "體力",

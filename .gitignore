@@ -4,3 +4,6 @@
 # Generated web artifacts (rebuilt by ./build.sh)
 /web/pkg/
 /web/fonts/
+
+# Deployment script (user-specific, contains SSH target)
+/deploy.sh
