@@ -11,7 +11,7 @@ console.log('frames:', list_frames());
 
 // Register fonts for 简体中文 (chs) + the shared number font.
 register_font('title_chs', fs.readFileSync('./fonts/arweibeigbpro_bd.otf'));
-register_font('number', fs.readFileSync('./fonts/FOT-TsukuAOldMin-Pr6-E.otf'));
+register_font('number', fs.readFileSync('./fonts/FOT-TsukuAOldMin-Pr6-E.digits.otf'));
 
 const cfg = {
   name: '不屈的剑斗士',

@@ -20,7 +20,7 @@ const FONT_MAP = {
   kor: 'NanumGothic-ExtraBold.ttf',
   eng: 'MOC-KaiminTsuki-B.otf',
 };
-const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.otf'; // 筑紫明朝（数字字体）
+const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.digits.otf'; // 筑紫明朝（数字字体）
 
 // Default card preloaded on startup: 90074110 卓越创造物Ω (Masterwork Artifact Ω).
 const DEFAULT_CARD = {
@@ -147,26 +147,49 @@ function t(key) {
 }
 
 const loadedFonts = {}; // filename -> Uint8Array (cached bytes)
+const registeredFonts = new Set(); // registry keys already registered
 
 async function loadFontFile(filename) {
   if (loadedFonts[filename]) return loadedFonts[filename];
-  const resp = await fetch('fonts/' + filename);
-  if (!resp.ok) throw new Error(t('fontLoadFailed') + filename);
-  const buf = new Uint8Array(await resp.arrayBuffer());
-  loadedFonts[filename] = buf;
-  return buf;
+  // Fetching the same file concurrently would duplicate the download; let a
+  // single in-flight promise serve all waiters.
+  if (!loadFontFile.inflight) loadFontFile.inflight = new Map();
+  if (loadFontFile.inflight.has(filename)) return loadFontFile.inflight.get(filename);
+  const p = (async () => {
+    const resp = await fetch('fonts/' + filename);
+    if (!resp.ok) throw new Error(t('fontLoadFailed') + filename);
+    const buf = new Uint8Array(await resp.arrayBuffer());
+    loadedFonts[filename] = buf;
+    loadFontFile.inflight.delete(filename);
+    return buf;
+  })();
+  loadFontFile.inflight.set(filename, p);
+  return p;
+}
+
+// Start downloading a language's fonts immediately (no wasm needed yet) so the
+// big title font downloads in parallel with the wasm module.
+function startFontDownload(lang) {
+  const titleFile = FONT_MAP[lang] || FONT_MAP.chs;
+  return Promise.all([loadFontFile(titleFile), loadFontFile(NUMBER_FONT)]);
+}
+
+// Register already-downloaded font bytes (requires the wasm to be initialized).
+function registerFonts(lang, bufs) {
+  const keys = [`title_${lang}`, 'number'];
+  for (let i = 0; i < keys.length; i++) {
+    // Registering re-parses the whole font each time — skip when already done.
+    if (registeredFonts.has(keys[i])) continue;
+    if (!register_font(keys[i], bufs[i])) {
+      throw new Error(t('fontRegFailed') + keys[i]);
+    }
+    registeredFonts.add(keys[i]);
+  }
 }
 
 async function loadFonts(lang) {
-  const titleFile = FONT_MAP[lang] || FONT_MAP.chs;
-  const keys = [`title_${lang}`, 'number'];
-  const files = [titleFile, NUMBER_FONT];
-  for (let i = 0; i < files.length; i++) {
-    const bytes = await loadFontFile(files[i]);
-    if (!register_font(keys[i], bytes)) {
-      throw new Error(t('fontRegFailed') + files[i]);
-    }
-  }
+  const bufs = await startFontDownload(lang);
+  registerFonts(lang, bufs);
 }
 
 const $ = (sel) => document.querySelector(sel);
@@ -493,6 +516,13 @@ function bindEvents() {
 }
 
 async function main() {
+  // Kick off the heavy downloads (fonts + default art) immediately so they run
+  // in parallel with the wasm module loading.
+  const fontDownload = startFontDownload(currentLang);
+  document.documentElement.lang = LANG_HTML[currentLang] || 'zh-CN';
+  buildLangDropdown();
+  updateLangUI();
+  const cardPromise = loadDefaultCard();
   try {
     await init();
     const ver = document.getElementById('ver');
@@ -500,10 +530,8 @@ async function main() {
   } catch (e) {
     console.error(e);
   }
-  document.documentElement.lang = LANG_HTML[currentLang] || 'zh-CN';
-  buildLangDropdown();
-  updateLangUI();
-  await loadDefaultCard();
+  await cardPromise;
+  registerFonts(currentLang, await fontDownload);
   bindEvents();
   renderPreview();
 }

@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn number_not_solid_block() {
         let fonts_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts");
-        let tsukushi = std::fs::read(format!("{fonts_dir}/FOT-TsukuAOldMin-Pr6-E.otf")).unwrap();
+        let tsukushi = std::fs::read(format!("{fonts_dir}/FOT-TsukuAOldMin-Pr6-E.digits.otf")).unwrap();
         let nanum = std::fs::read(format!("{fonts_dir}/NanumGothic-ExtraBold.ttf")).unwrap();
         text::register_font("title_chs", &nanum);
         text::register_font("number", &tsukushi);
