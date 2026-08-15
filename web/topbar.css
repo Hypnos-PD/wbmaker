@@ -1,0 +1,119 @@
+/* topbar.css — WBArts-shared topbar styles + design tokens (kept in sync with WBArts). */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+button { user-select: none; -webkit-user-select: none; }
+img { -webkit-user-drag: none; }
+
+:root {
+  --bg: #f2f2f2;
+  --bg2: #080808;
+  --bg3: #ffffff;
+  --border: #050505;
+  --text: #111111;
+  --text2: #5a5a5a;
+  --inverse: #f7f7f7;
+  --accent: #a8c900;
+  --accent2: #111111;
+  --danger: #ff314f;
+  --info: #176bff;
+  --success: #19a84a;
+}
+
+/* Buttons */
+.top-action {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 3px 3px 0 var(--border);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+  font-family: inherit;
+}
+.top-action:hover,
+.top-action:focus-visible {
+  background: var(--accent);
+  outline: none;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--border);
+}
+.top-action.active {
+  background: var(--accent);
+  color: var(--bg2);
+}
+
+/* Topbar */
+#wbaTopbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg2);
+  border-bottom: 3px solid var(--border);
+}
+.topbar-logo {
+  font-size: 18px;
+  font-weight: 950;
+  color: var(--accent);
+  text-decoration: none;
+  letter-spacing: 1px;
+  padding: 4px 0;
+}
+.topbar-logo span { color: var(--inverse); }
+.topbar-spacer { flex: 1; }
+
+/* Dropdowns */
+.dd-wrap { position: relative; }
+.dd-btn {
+  min-height: 38px; padding: 8px 12px;
+  border: 2px solid var(--border); border-radius: 0;
+  background: #fff; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 900; color: var(--text);
+  box-shadow: 3px 3px 0 var(--border);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+  font-family: inherit;
+}
+.dd-btn img { width: 20px; height: 20px; }
+.dd-btn:hover,
+.dd-btn:focus-visible {
+  background: var(--accent);
+  outline: none;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--border);
+}
+.dd-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 150px;
+  background: var(--bg2); border: 3px solid var(--border);
+  box-shadow: 6px 6px 0 var(--border);
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+  z-index: 400;
+}
+.dd-wrap:hover .dd-menu,
+.dd-btn:focus-visible + .dd-menu,
+.dd-menu:hover {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+.dd-item {
+  display: block; width: 100%; padding: 8px 14px;
+  font-size: 13px; text-align: left; color: var(--inverse);
+  background: transparent; border: none; cursor: pointer;
+  font-weight: 800; text-decoration: none;
+  transition: background 0.1s, color 0.1s;
+  font-family: inherit;
+}
+.dd-item:hover { background: var(--accent); color: #fff; }
+.dd-item.active { color: var(--accent); }

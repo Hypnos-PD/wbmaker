@@ -1,0 +1,130 @@
+/* style.css — WB 制卡器 page styles, matching WBArts's neo-brutalism look.
+   Design tokens are defined in topbar.css. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) 1fr;
+  gap: 20px;
+  padding: 20px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--bg3);
+  border: 3px solid var(--border);
+  box-shadow: 6px 6px 0 var(--border);
+  padding: 18px;
+}
+
+.form section { margin-bottom: 8px; }
+.form h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text2);
+  margin: 16px 0 10px;
+  border-bottom: 3px solid var(--border);
+  padding-bottom: 6px;
+  font-weight: 900;
+}
+.form section:first-child h2 { margin-top: 0; }
+
+label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+}
+label > input[type=text], label > input[type=number], label > select, label > textarea {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 700;
+  box-shadow: 2px 2px 0 var(--border);
+}
+label > textarea { resize: vertical; line-height: 1.5; }
+label > input:focus, label > select:focus, label > textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 4px 4px 0 var(--accent);
+}
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row.stats { grid-template-columns: 1fr 1fr 1fr; }
+
+label.file {
+  cursor: pointer;
+  border: 2px dashed var(--border);
+  border-radius: 0;
+  padding: 18px;
+  text-align: center;
+  color: var(--text2);
+  background: #fff;
+}
+label.file:hover { border-color: var(--accent); color: var(--text); }
+label.file input { display: none; }
+
+.preview { position: sticky; top: 80px; }
+.preview-canvas-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background:
+    repeating-conic-gradient(#e8e8e8 0% 25%, #f5f5f5 0% 50%) 50% / 20px 20px;
+  border: 2px solid var(--border);
+  padding: 16px;
+}
+#preview {
+  max-height: 72vh;
+  max-width: 100%;
+  image-rendering: auto;
+  box-shadow: 6px 6px 0 var(--border);
+}
+#preview[src=""] { display: none; }
+#previewHint { color: var(--text2); font-weight: 800; }
+
+.preview-actions { margin-top: 12px; text-align: center; }
+
+.btn {
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 3px 3px 0 var(--border);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+  font-family: inherit;
+}
+.btn:hover {
+  background: var(--accent);
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--border);
+}
+.btn.primary { background: var(--accent); color: var(--border); border-color: var(--border); }
+.btn.primary:hover { background: #b9dd00; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .preview { position: static; }
+}

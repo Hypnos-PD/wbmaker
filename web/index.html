@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB 制卡器 · wbmaker</title>
+  <link rel="stylesheet" href="topbar.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header id="wbaTopbar">
+    <div class="topbar">
+      <a class="topbar-logo" href="/">WB <span data-i18n="brand">制卡器</span></a>
+      <div class="topbar-spacer"></div>
+      <button class="top-action" id="btnImportJson" type="button" data-i18n="importJson">导入 JSON</button>
+      <button class="top-action" id="btnReset" type="button" data-i18n="reset">重置</button>
+      <div class="dd-wrap" id="langDropdown"></div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <form id="cardForm" class="panel form" autocomplete="off">
+      <!-- 基础 -->
+      <section>
+        <h2 data-i18n="basicInfo">基础信息</h2>
+        <label><span data-i18n="cardName">卡名</span>
+          <input type="text" name="name" placeholder="卡牌名称" data-i18n-ph="cardNamePh">
+        </label>
+        <div class="row">
+          <label><span data-i18n="classLabel">职业</span>
+            <select name="class" id="class">
+              <option value="0">中立</option>
+              <option value="1">精灵</option>
+              <option value="2">皇家</option>
+              <option value="3">巫师</option>
+              <option value="4">龙族</option>
+              <option value="5">梦魇</option>
+              <option value="6">主教</option>
+              <option value="7">超越者</option>
+            </select>
+          </label>
+          <label><span data-i18n="specialFrame">特殊框</span>
+            <select name="special" id="special">
+              <option value="">普通</option>
+              <option value="style_101">style_101</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label><span data-i18n="kindLabel">种类</span>
+            <select name="kind" id="kind">
+              <option value="1">随从 (Follower)</option>
+              <option value="2">护符 (Amulet)</option>
+              <option value="3">法术 (Spell)</option>
+            </select>
+          </label>
+          <label><span data-i18n="rarityLabel">稀有度</span>
+            <select name="rarity" id="rarity">
+              <option value="1">铜 (Bronze)</option>
+              <option value="2">银 (Silver)</option>
+              <option value="3">金 (Gold)</option>
+              <option value="4">虹 (Legend)</option>
+            </select>
+          </label>
+        </div>
+        <div class="row stats">
+          <label><span data-i18n="cost">费用</span>
+            <input type="text" name="cost" value="1" inputmode="numeric">
+          </label>
+          <label class="follower-only"><span data-i18n="attack">攻击</span>
+            <input type="text" name="atk" value="1" inputmode="numeric">
+          </label>
+          <label class="follower-only"><span data-i18n="defense">体力</span>
+            <input type="text" name="life" value="1" inputmode="numeric">
+          </label>
+        </div>
+      </section>
+
+      <!-- 立绘 -->
+      <section>
+        <h2 data-i18n="art">立绘</h2>
+        <label class="file">
+          <input type="file" name="art" id="artInput" accept="image/*">
+          <span id="artLabel" data-i18n="artPh">选择图片（PNG/JPG/WebP）</span>
+        </label>
+      </section>
+    </form>
+
+    <div class="panel preview">
+      <div class="preview-canvas-wrap">
+        <img id="preview" alt="预览" src="">
+        <div id="previewHint" data-i18n="previewLoading">预览加载中…</div>
+      </div>
+      <div class="preview-actions">
+        <button id="btnExportPng2" class="btn primary" data-i18n="exportPng">导出 PNG</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

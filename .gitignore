@@ -1,0 +1,6 @@
+# Rust build artifacts
+/target/
+
+# Generated web artifacts (rebuilt by ./build.sh)
+/web/pkg/
+/web/fonts/
