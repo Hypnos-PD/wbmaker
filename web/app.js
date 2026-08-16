@@ -34,6 +34,8 @@ const FONT_MAP = {
 const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.digits.otf'; // 筑紫明朝（数字字体）
 
 // Default card preloaded on startup: 90074110 卓越创造物Ω (Masterwork Artifact Ω).
+// Skill texts come from WBArts data/cards.json (game markup converted to the
+// wbm format: <color=Keyword>X</color> -> 【X】, <b> -> [b], <hr> -> 第二段).
 const DEFAULT_CARD = {
   name: {
     chs: '卓越创造物Ω',
@@ -49,6 +51,27 @@ const DEFAULT_CARD = {
   atk: '10',
   life: '10',
   art: 'art/900741100.png',
+  trait: {
+    chs: '创造物',
+    eng: 'Artifact',
+    jpn: 'アーティファクト',
+    kor: '아티팩트',
+    cht: '創造物',
+  },
+  detail1: {
+    chs: '【入场曲】对对手的战场上的所有随从造成5点伤害。回复自己的主战者5点生命值。',
+    eng: '【Fanfare】: Deal 5 damage to all enemy followers. Restore 5 defense to your leader.',
+    jpn: '【ファンファーレ】相手の場のフォロワーすべてに5ダメージ。自分のリーダーを5回復。',
+    kor: '【출격】상대방 전장의 추종자 모두에게 5 피해. 내 리더를 5 회복.',
+    cht: '【入場曲】給予敵方戰場上全部的從者卡5點傷害。回復自己的主戰者5點生命值。',
+  },
+  detail2: {
+    chs: '【疾驰】\n【守护】\n【灵气】',
+    eng: '【Storm】\n【Ward】\n【Aura】',
+    jpn: '【疾走】\n【守護】\n【オーラ】',
+    kor: '【질주】\n【수호】\n【오라】',
+    cht: '【疾馳】\n【守護】\n【光紋】',
+  },
 };
 
 // ---- Shared language setting (same key/values as WBArts) ----
@@ -429,6 +452,12 @@ async function loadDefaultCard() {
   field('cost').value = DEFAULT_CARD.cost;
   field('atk').value = DEFAULT_CARD.atk;
   field('life').value = DEFAULT_CARD.life;
+  // DIY / 效果图 面板的默认信息（正文两段 + 兵种类型）
+  const lang = DEFAULT_CARD.trait[currentLang] ? currentLang : 'chs';
+  field('trait').value = DEFAULT_CARD.trait[lang];
+  field('d1').value = DEFAULT_CARD.detail1[lang];
+  field('d2').value = DEFAULT_CARD.detail2[lang];
+  field('showDetail2').checked = true;
   updateKindUI();
   rebuildRarity();
 
