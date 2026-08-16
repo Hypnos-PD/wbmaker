@@ -1068,6 +1068,7 @@ function addCrestBlock() {
         slot.dataset.spec = 'upload';
         slot.querySelector('img').style.visibility = 'hidden';
         slot.querySelector('.slot-tag').textContent = file.name;
+        e.target.value = ''; // 同一张图可重复选择
         refresh();
       } catch (err) { alert(t('imageReadFailed') + err.message); }
     }
@@ -1084,6 +1085,7 @@ function addCrestBlock() {
         slot.dataset.spec = 'upload';
         slot.querySelector('img').style.visibility = 'hidden';
         slot.querySelector('.slot-tag').textContent = file.name;
+        e.target.value = ''; // 同一张图可重复选择
         refresh();
       } catch (err) { alert(t('imageReadFailed') + err.message); }
     }
@@ -1171,6 +1173,8 @@ function bindEvents() {
 
   document.getElementById('artInput').addEventListener('change', (e) => {
     handleArtFile(e.target.files[0]);
+    // 清空 value：重新选择同一张图也能再次触发 change（裁切弹窗）
+    e.target.value = '';
   });
 
   document.getElementById('btnExportPng').addEventListener('click', exportPng);
