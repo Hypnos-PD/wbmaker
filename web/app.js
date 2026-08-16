@@ -881,12 +881,14 @@ function changeSize(key, delta) {
   refreshSizeLabels();
 }
 
-function insertAtCaret(textarea, tag) {
+function insertAtCaret(textarea, tag, caretMode) {
   const s = textarea.selectionStart ?? textarea.value.length;
   const e = textarea.selectionEnd ?? s;
   textarea.value = textarea.value.slice(0, s) + tag + textarea.value.slice(e);
-  // [b][/b] 光标落在中间，[hr] 等自闭合标签落在其后
-  const caret = s + (tag.includes('[/') ? tag.length - 4 : tag.length);
+  // middle: [b][/b] 与成对括号（【】『』「」）光标落在中间；end: [hr] 落在其后
+  const caret = caretMode === 'end'
+    ? s + tag.length
+    : (tag.includes('[/') ? s + tag.length - 4 : s + Math.floor(tag.length / 2));
   textarea.focus();
   textarea.setSelectionRange(caret, caret);
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1005,6 +1007,12 @@ function addCrestBlock() {
       </span></label>
     <input type="file" accept="image/*" data-c-upload1 hidden>
     <input type="file" accept="image/*" data-c-upload2 hidden>
+    <div class="tool mini-row">
+      <button type="button" class="mini" data-crest-b="${n}">[b]</button>
+      <button type="button" class="mini" data-crest-bracket="${n}">【】</button>
+      <button type="button" class="mini" data-crest-bracket="${n}" data-tag="『』">『』</button>
+      <button type="button" class="mini" data-crest-bracket="${n}" data-tag="「」">「」</button>
+    </div>
     <textarea data-c-desc rows="2" placeholder="${t('crestDesc')}"></textarea>
   `;
   list.appendChild(div);
@@ -1014,6 +1022,13 @@ function addCrestBlock() {
   });
   const refresh = () => renderPreview();
   div.querySelectorAll('input, select, textarea').forEach((el) => el.addEventListener('input', refresh));
+  const descEl = div.querySelector('[data-c-desc]');
+  div.querySelectorAll('[data-crest-b]').forEach((btn) => {
+    btn.addEventListener('click', () => insertAtCaret(descEl, '[b][/b]', 'middle'));
+  });
+  div.querySelectorAll('[data-crest-bracket]').forEach((btn) => {
+    btn.addEventListener('click', () => insertAtCaret(descEl, btn.dataset.tag || '【】', 'middle'));
+  });
   div.querySelector('[data-crest-slot="icon1"]').addEventListener('click', () => openCrestPick(div, 'icon1'));
   div.querySelector('[data-crest-slot="icon2"]').addEventListener('click', () => openCrestPick(div, 'icon2'));
   div.querySelector('[data-crest-upload-btn="1"]').addEventListener('click', () => div.querySelector('[data-c-upload1]').click());
@@ -1097,12 +1112,17 @@ function bindDiyControls() {
   });
   document.querySelectorAll('[data-keyword]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      insertAtCaret(field(btn.dataset.keyword), '[b][/b]');
+      insertAtCaret(field(btn.dataset.keyword), '[b][/b]', 'middle');
     });
   });
   document.querySelectorAll('[data-hr]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      insertAtCaret(field(btn.dataset.hr), '[hr]');
+      insertAtCaret(field(btn.dataset.hr), '[hr]', 'end');
+    });
+  });
+  document.querySelectorAll('[data-bracket]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      insertAtCaret(field(btn.dataset.bracket), btn.dataset.tag || '【】', 'middle');
     });
   });
 }

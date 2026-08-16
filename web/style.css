@@ -444,3 +444,5 @@ label.file.small {
   overflow-y: auto;
 }
 .crest-grid.pick .crest-cell { aspect-ratio: 1; }
+
+.mini-row { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
