@@ -140,7 +140,7 @@ const UI = {
     crestDesc: "Crest description", energy: "Energy", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
     illustrator: "Illustrator", diyAuthor: "Footnote", illusTitle: "Illus by ",
-    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", installHint: "Use your browser menu: Install app / Add to Home Screen.", installHintIOS: "In Safari, tap the Share button and choose \"Add to Home Screen\".", installConfirm: "Install", later: "Later", nameSize: "Name size",
+    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", nameSize: "Name size",
     crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
   jpn: {
