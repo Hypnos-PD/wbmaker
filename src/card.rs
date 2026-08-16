@@ -53,15 +53,13 @@ pub struct CardConfig {
     pub detail2: String,      // 第二段正文 (sv-byd-diy only)
     pub evolve: String,       // 进化时 text (sv-byd-diy only)
     pub super_evolve: String, // 超进化 text (sv-byd-diy only)
-    pub crest: String,        // 纹章 text (sv-byd-diy only)
-    pub crest_name: String,   // crest name (sv-byd-diy only)
+
     pub illustrator: String,  // 画师 (sv-byd-diy only)
     pub diy: String,          // DIY 作者 (sv-byd-diy only)
 
     pub show_detail2: bool,
     pub show_evolve: bool,
     pub show_super: bool,
-    pub show_crest: bool,
     pub show_illustrator: bool,
     pub show_diy: bool,
 
@@ -91,17 +89,11 @@ pub struct CardConfig {
     pub type_title: String,   // localized "类型" label (title band)
     pub class_text: String,   // localized class name (title band)
     pub illus_title: String,  // localized "画师：" label (signature row)
-    pub crest_border: u8,     // 0 纹章 / 1 信仰 / 2 激奏 / 3 结晶
-    pub crest_scale: f32,     // crest banner scale, 0.1..=1.5, default 1.0
     pub d1_size: f32,         // 正文 font size (px), default 32.4
     pub d2_size: f32,
     pub ev_size: f32,
     pub super_size: f32,
-    pub crest_size: f32,
-    pub crest_icon1: String,  // "" | "builtin:<n>" | "upload"
-    pub crest_icon2: String,
-    pub show_crest_icon2: bool,
-    /// 多纹章块（能力面板动态添加）；非空时优先于上面的单纹章旧字段
+    /// 纹章块（能力面板动态添加，可多个）
     #[serde(default)]
     pub crests: Vec<CrestBlock>,
 }
@@ -119,8 +111,14 @@ pub struct CrestBlock {
     pub scale: f32,
     #[serde(default)]
     pub icon1: String,
+    /// icon1 == "upload" 时对应的 PNG base64
+    #[serde(default)]
+    pub icon1_data: Option<String>,
     #[serde(default)]
     pub icon2: String,
+    /// icon2 == "upload" 时对应的 PNG base64
+    #[serde(default)]
+    pub icon2_data: Option<String>,
     #[serde(default)]
     pub show_icon2: bool,
     #[serde(default = "default_crest_text_size")]
@@ -153,14 +151,11 @@ impl Default for CardConfig {
             detail2: String::new(),
             evolve: String::new(),
             super_evolve: String::new(),
-            crest: String::new(),
-            crest_name: String::new(),
             illustrator: String::new(),
             diy: String::new(),
             show_detail2: false,
             show_evolve: false,
             show_super: false,
-            show_crest: false,
             show_illustrator: false,
             show_diy: false,
             text_size: 24.0,
@@ -182,16 +177,10 @@ impl Default for CardConfig {
             type_title: String::from("类型"),
             class_text: String::new(),
             illus_title: String::from("画师："),
-            crest_border: 0,
-            crest_scale: 1.0,
             d1_size: 32.4,
             d2_size: 32.4,
             ev_size: 32.4,
             super_size: 32.4,
-            crest_size: 32.4,
-            crest_icon1: String::new(),
-            crest_icon2: String::new(),
-            show_crest_icon2: false,
             crests: Vec::new(),
         }
     }

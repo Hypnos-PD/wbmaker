@@ -60,22 +60,23 @@ const diyCfg = {
   show_detail2: true,
   show_evolve: true,
   show_super: true,
-  show_crest: true,
   show_illustrator: true,
   show_diy: true,
+  crests: [
+    { name: '龙之纹章', text: '这个纹章给主战者带来祝福。', border: 0, scale: 1.0,
+      icon1: 'builtin:0', icon2: 'builtin:1', show_icon2: true, size: 32.4 },
+  ],
   bg_alpha: 0.3,
   detail1: '【守护】\n【入场曲】抽取1张卡牌。\n这是正文内容，测试自动换行效果，[b]金色关键词[/b]和[i]斜体文本[/i]混排。',
   detail2: '【谢幕曲】给予自己的主战者1点伤害。',
   evolve: '进化时 获得+2/+2效果。',
   super_evolve: '超进化时 获得【疾驰】效果。',
   crest: '这个纹章给主战者带来祝福。',
-  crest_name: '龙之纹章',
   illustrator: '某位画师',
   diy: 'DIY：某作者',
 };
 
 const art = fs.readFileSync('/home/aspharos/Project/sv-byd-diy/img/test/02fba8dd2718e77a51e519ab0895f3b29e6540e3.jpg');
-const crest1 = fs.readFileSync('/home/aspharos/Project/sv-byd-diy/img/test/luna_crest.jpg');
-const diyPng = render_diy_card(JSON.stringify(diyCfg), art, crest1, new Uint8Array(0));
+const diyPng = render_diy_card(JSON.stringify(diyCfg), art);
 fs.writeFileSync('/tmp/wbmaker_diy.png', diyPng);
 console.log('diy rendered', diyPng.length, 'bytes -> /tmp/wbmaker_diy.png');

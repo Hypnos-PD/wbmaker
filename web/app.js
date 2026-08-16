@@ -4,11 +4,9 @@ let artBytes = null; // PNG bytes of uploaded art (full resolution)
 let cropState = null; // normalized crop rect {x,y,w,h} applied at render time
 
 let currentStyle = localStorage.getItem("style") === "diy" ? "diy" : "wb"; // 'wb' | 'diy'
-let crest1Bytes = null; // uploaded crest icon 1 (PNG bytes)
-let crest2Bytes = null; // uploaded crest icon 2 (PNG bytes)
-let crestSpec1 = "builtin:0"; // '', 'builtin:<n>' or 'upload'
-let crestSpec2 = "builtin:0";
 let builtinCrests = []; // names from the wasm (index order = builtin:<n>)
+// 每个纹章块自己的上传图标字节（块 DOM -> { icon1, icon2 }）
+const crestUploads = new WeakMap();
 
 // Per-section font sizes in the BYD-DIY tool's unit (81 @ 0.4 scale = 32.4 px).
 const DIY_SIZES = { d1: 81, d2: 81, ev: 81, super: 81, cre: 81 };
@@ -387,11 +385,18 @@ function buildRenderConfig() {
 
 function renderCard(config, art) {
   if (isDiy()) {
-    const c1 = crestSpec1 === 'upload' ? (crest1Bytes || new Uint8Array(0)) : new Uint8Array(0);
-    const c2 = crestSpec2 === 'upload' ? (crest2Bytes || new Uint8Array(0)) : new Uint8Array(0);
-    return render_diy_card(JSON.stringify(config), art || new Uint8Array(0), c1, c2);
+    return render_diy_card(JSON.stringify(config), art || new Uint8Array(0));
   }
   return render_card(JSON.stringify(config), art || new Uint8Array(0));
+}
+
+function bytesToBase64(bytes) {
+  let bin = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin);
 }
 
 async function renderPreview() {
@@ -502,15 +507,6 @@ function resetDiyFields() {
   addCrestBlock();
   for (const k of Object.keys(DIY_SIZES)) DIY_SIZES[k] = 81;
   refreshSizeLabels();
-  crestSpec1 = 'builtin:0';
-  crestSpec2 = 'builtin:0';
-  crest1Bytes = null;
-  crest2Bytes = null;
-  document.querySelectorAll('[data-crest-upload]').forEach((inp) => {
-    inp.value = '';
-    inp.closest('label').querySelector('span').textContent = t('uploadCrest');
-  });
-  markCrestSelection();
 }
 
 // ---- i18n: translate static labels & rebuild translated selects ----
@@ -878,9 +874,13 @@ function applyCrestPick(spec) {
     img.style.visibility = 'hidden';
     cell.querySelector('.slot-tag').textContent = t('crestIconNone');
   }
-  // 上传文件输入需要清空，避免旧文件残留
-  const up = div.querySelector(`[data-crest-upload="${slot === 'icon1' ? 1 : 2}"]`);
+  // 清空该槽位对应的上传输入与已存字节，避免旧文件残留
+  const up = div.querySelector(slot === 'icon1' ? '[data-c-upload1]' : '[data-c-upload2]');
   if (up) up.value = '';
+  const store = crestUploads.get(div) || {};
+  if (slot === 'icon1') store.icon1 = null;
+  else store.icon2 = null;
+  crestUploads.set(div, store);
   closeCrestPick();
   renderPreview();
 }
@@ -939,7 +939,10 @@ function addCrestBlock() {
     const file = e.target.files[0];
     if (file) {
       try {
-        crest1Bytes = await fileToPng(file); crestSpec1 = 'upload';
+        const bytes = await fileToPng(file);
+        const store = crestUploads.get(div) || {};
+        store.icon1 = bytes;
+        crestUploads.set(div, store);
         const slot = div.querySelector('[data-crest-slot="icon1"]');
         slot.dataset.spec = 'upload';
         slot.querySelector('img').style.visibility = 'hidden';
@@ -952,7 +955,10 @@ function addCrestBlock() {
     const file = e.target.files[0];
     if (file) {
       try {
-        crest2Bytes = await fileToPng(file); crestSpec2 = 'upload';
+        const bytes = await fileToPng(file);
+        const store = crestUploads.get(div) || {};
+        store.icon2 = bytes;
+        crestUploads.set(div, store);
         const slot = div.querySelector('[data-crest-slot="icon2"]');
         slot.dataset.spec = 'upload';
         slot.querySelector('img').style.visibility = 'hidden';
@@ -973,13 +979,25 @@ function collectCrests() {
     if (!name.trim() && !text.trim()) return; // 空块跳过
     const slot1 = div.querySelector('[data-crest-slot="icon1"]');
     const slot2 = div.querySelector('[data-crest-slot="icon2"]');
+    const store = crestUploads.get(div) || {};
+    const iconOf = (slot, bytes) => {
+      const spec = slot.dataset.spec || '';
+      if (spec === 'upload' && bytes) {
+        return { spec, data: bytesToBase64(bytes) };
+      }
+      return { spec: spec === 'upload' ? '' : spec, data: null };
+    };
+    const i1 = iconOf(slot1, store.icon1);
+    const i2 = iconOf(slot2, store.icon2);
     blocks.push({
       name,
       text,
       border: parseInt(div.querySelector('[data-c-border]').value, 10) || 0,
       scale: parseFloat(div.querySelector('[data-c-scale]').value) || 1.0,
-      icon1: slot1.dataset.spec === 'upload' ? crestSpec1 : (slot1.dataset.spec || ''),
-      icon2: slot2.dataset.spec === 'upload' ? crestSpec2 : (slot2.dataset.spec || ''),
+      icon1: i1.spec,
+      icon1_data: i1.data,
+      icon2: i2.spec,
+      icon2_data: i2.data,
       show_icon2: div.querySelector('[data-c-show2]').checked,
       size: DIY_SIZES.cre * 0.4,
     });
@@ -1002,23 +1020,6 @@ function bindDiyControls() {
   document.querySelectorAll('[data-hr]').forEach((btn) => {
     btn.addEventListener('click', () => {
       insertAtCaret(field(btn.dataset.hr), '[hr]');
-    });
-  });
-  document.querySelectorAll('[data-crest-upload]').forEach((inp) => {
-    inp.addEventListener('change', async (e) => {
-      const slot = inp.dataset.crestUpload;
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        const buf = await fileToPng(file);
-        if (slot === '1') { crest1Bytes = buf; crestSpec1 = 'upload'; }
-        else { crest2Bytes = buf; crestSpec2 = 'upload'; }
-        inp.closest('label').querySelector('span').textContent = file.name;
-        markCrestSelection();
-        renderPreview();
-      } catch (err) {
-        alert(t('imageReadFailed') + err.message);
-      }
     });
   });
 }

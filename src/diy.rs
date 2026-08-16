@@ -232,11 +232,38 @@ fn true_size(font: &ab_glyph::FontArc, size: f32) -> f32 {
     }
 }
 
-/// Resolve the crest icon image: user upload wins, then builtin index.
-fn resolve_crest(spec: &str, upload: Option<&[u8]>) -> Result<Option<RgbaImage>, String> {
+/// Minimal standard-alphabet base64 decoder（无外部依赖）.
+fn base64_decode(input: &str) -> Option<Vec<u8>> {
+    let mut out = Vec::with_capacity(input.len() * 3 / 4);
+    let mut acc: u32 = 0;
+    let mut bits: u32 = 0;
+    for c in input.bytes() {
+        let v = match c {
+            b'A'..=b'Z' => c - b'A',
+            b'a'..=b'z' => c - b'a' + 26,
+            b'0'..=b'9' => c - b'0' + 52,
+            b'+' => 62,
+            b'/' => 63,
+            b'=' => break,
+            _ => continue, // 忽略空白/换行
+        };
+        acc = (acc << 6) | v as u32;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits) as u8);
+        }
+    }
+    Some(out)
+}
+
+/// Resolve the crest icon image: upload base64 wins, then builtin index.
+fn resolve_crest(spec: &str, data: Option<&str>) -> Result<Option<RgbaImage>, String> {
     if spec == "upload" {
-        if let Some(bytes) = upload {
-            return decode(bytes, "crest icon").map(Some);
+        if let Some(b64) = data {
+            if let Some(bytes) = base64_decode(b64) {
+                return decode(&bytes, "crest icon").map(Some);
+            }
         }
         return Ok(None);
     }
@@ -251,12 +278,7 @@ fn resolve_crest(spec: &str, upload: Option<&[u8]>) -> Result<Option<RgbaImage>,
     Ok(None) // 空规格/未知规格 = 不绘制图标
 }
 
-pub fn render_diy(
-    config: &CardConfig,
-    art_bytes: Option<&[u8]>,
-    crest1_png: Option<&[u8]>,
-    crest2_png: Option<&[u8]>,
-) -> Result<Vec<u8>, String> {
+pub fn render_diy(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u8>, String> {
     let mut canvas = RgbaImage::from_pixel(DIY_W, DIY_H, image::Rgba([0, 0, 0, 255]));
 
     let cls = DIY_CLASSES
@@ -449,23 +471,9 @@ pub fn render_diy(
         }
         y += bh + SECTION_GAP;
     }
-    // crest blocks（能力面板可添加多个；兼容旧的单纹章字段）
-    if !config.crests.is_empty() {
-        for block in &config.crests {
-            y += draw_crest_block(&mut canvas, &engine, block, &spit_img, crest1_png, crest2_png, text_x, text_w, y)?;
-        }
-    } else if config.show_crest {
-        let legacy = CrestBlock {
-            name: config.crest_name.clone(),
-            text: config.crest.clone(),
-            border: config.crest_border,
-            scale: config.crest_scale,
-            icon1: config.crest_icon1.clone(),
-            icon2: config.crest_icon2.clone(),
-            show_icon2: config.show_crest_icon2,
-            size: config.crest_size,
-        };
-        y += draw_crest_block(&mut canvas, &engine, &legacy, &spit_img, crest1_png, crest2_png, text_x, text_w, y)?;
+    // 纹章块（能力面板可添加多个）
+    for block in &config.crests {
+        y += draw_crest_block(&mut canvas, &engine, block, &spit_img, text_x, text_w, y)?;
     }
 
     // 6. signature rows
@@ -620,8 +628,6 @@ fn draw_crest_block(
     engine: &TextEngine,
     block: &CrestBlock,
     spit_img: &Option<RgbaImage>,
-    crest1_png: Option<&[u8]>,
-    crest2_png: Option<&[u8]>,
     text_x: f32,
     text_w: f32,
     y: f32,
@@ -663,7 +669,7 @@ fn draw_crest_block(
         nx += nw + 10.0;
     }
     let icon_side = (CREST_ICON_SIDE * v).clamp(8.0, band_h);
-    let icon1 = resolve_crest(&block.icon1, crest1_png)?;
+    let icon1 = resolve_crest(&block.icon1, block.icon1_data.as_deref())?;
     if let Some(ic) = icon1 {
         blit_stretch(
             canvas,
@@ -676,7 +682,7 @@ fn draw_crest_block(
         nx += icon_side + 4.0;
     }
     if block.show_icon2 {
-        let icon2 = resolve_crest(&block.icon2, crest2_png)?;
+        let icon2 = resolve_crest(&block.icon2, block.icon2_data.as_deref())?;
         if let Some(ic) = icon2 {
             blit_stretch(
                 canvas,
@@ -740,6 +746,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn base64_roundtrip() {
+        let data: Vec<u8> = (0..=255).collect();
+        // 简单编码（这里只验证解码正确性，用标准库无关的固定样例）
+        let cases: [(&str, &[u8]); 3] = [
+            ("aGVsbG8=", b"hello"),
+            ("5Y+w5rC4", "台永".as_bytes()),
+            ("AQID", &[1, 2, 3]),
+        ];
+        for (b64, expect) in cases {
+            let got = base64_decode(b64).unwrap();
+            assert_eq!(got, expect, "decode {b64}");
+        }
+        let _ = data;
+    }
+
+    #[test]
     fn class_mapping() {
         assert_eq!(DIY_CLASSES[0], "neutral");
         assert_eq!(DIY_CLASSES[7], "portalcraft");
@@ -792,14 +814,22 @@ mod tests {
             atk: "5".into(),
             life: "6".into(),
             detail1: "【守护】\n【入场曲】抽取1张卡牌。".into(),
-            show_crest: true,
-            crest: "纹章 1".into(),
-            crest_name: "试制纹章".into(),
             show_diy: true,
             diy: "DIY：某人".into(),
+            crests: vec![CrestBlock {
+                name: "试制纹章".into(),
+                text: "纹章 1".into(),
+                border: 0,
+                scale: 1.0,
+                icon1: "builtin:0".into(),
+                icon2: "".into(),
+                show_icon2: false,
+                size: 32.4,
+                ..Default::default()
+            }],
             ..Default::default()
         };
-        let out = render_diy(&cfg, None, None, None).expect("render diy");
+        let out = render_diy(&cfg, None).expect("render diy");
         assert!(out.len() > 1000);
         let img = image::load_from_memory(&out).expect("decode");
         assert_eq!((img.width(), img.height()), (1920, 1080));
