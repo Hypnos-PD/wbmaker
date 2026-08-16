@@ -195,6 +195,21 @@ fn decode(bytes: &[u8], what: &str) -> Result<RgbaImage, String> {
         .map_err(|e| format!("{what} decode failed: {e}"))
 }
 
+/// Vertically flip the top half of the panel texture onto the bottom half.
+/// The texture is top-bottom symmetric except for the signature divider line,
+/// whose mirror position is plain background — so the flipped copy has no line.
+fn flipped_top_half(img: &RgbaImage) -> RgbaImage {
+    let (w, h) = img.dimensions();
+    let mut out = RgbaImage::new(w, h);
+    for y in 0..h {
+        let src_y = if y < h / 2 { y } else { h - 1 - y };
+        for x in 0..w {
+            out.put_pixel(x, y, *img.get_pixel(x, src_y));
+        }
+    }
+    out
+}
+
 /// Stretch-blit `src` into the destination rect.
 fn blit_stretch(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f32, dh: f32) {
     let dw = dw.round() as u32;
@@ -344,6 +359,13 @@ pub fn render_diy(
         diy_effect_bytes("card_detail_background").unwrap(),
         "card_detail_background",
     )?;
+    // 贴图除"画师行上方分隔线"外上下轴对称：没有画师信息时取上半部分
+    // 向下翻转的版本（该线无镜像对应，翻转过后的底部即无线条）。
+    let detail_bg = if config.show_illustrator && !config.illustrator.trim().is_empty() {
+        detail_bg
+    } else {
+        flipped_top_half(&detail_bg)
+    };
     blit_stretch(&mut canvas, &detail_bg, DETAIL_X, DETAIL_Y, DETAIL_W, DETAIL_H);
     // 分割线贴图为不透明白线，按 SPLIT_ALPHA 降透明度后再绘制
     let spit_img: Option<RgbaImage> = match diy_effect_bytes("detail_spit") {
@@ -738,5 +760,29 @@ mod tests {
         assert!(out.len() > 1000);
         let img = image::load_from_memory(&out).expect("decode");
         assert_eq!((img.width(), img.height()), (1920, 1080));
+    }
+}
+
+#[cfg(test)]
+mod flip_tests {
+    use super::*;
+
+    #[test]
+    fn flipped_top_half_removes_signature_line() {
+        let bytes = diy_effect_bytes("card_detail_background").unwrap();
+        let im = decode(bytes, "bg").unwrap();
+        let flipped = flipped_top_half(&im);
+        // 画师行上方分隔线（原图 634-638 行）在翻转版中应变为其镜像行
+        // （99-103，纯背景色），即不再有亮线
+        for y in 634..=638 {
+            for x in (0..flipped.width()).step_by(16) {
+                let p = flipped.get_pixel(x, y);
+                assert!(p[0] < 60 && p[1] < 60 && p[2] < 60, "row {y} px {x} 仍有亮线: {p:?}");
+            }
+        }
+        // 上半部分原样保留；下半部分是上半部分的镜像
+        for (a, b) in [(0u32, 0u32), (100, 100), (636, 100), (368, 368)] {
+            assert_eq!(flipped.get_pixel(50, a), im.get_pixel(50, b), "row {a} should mirror {b}");
+        }
     }
 }

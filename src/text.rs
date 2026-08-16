@@ -13,8 +13,8 @@ pub const BODY: [u8; 4] = [255, 255, 255, 255];
 pub const SHADOW: [u8; 4] = [0, 0, 0, 210];
 /// DIY keyword gold ([b]…[/b]), same tone as the BYD-DIY tool (#ffd676).
 pub const KEYWORD_GOLD: [u8; 4] = [255, 214, 118, 255];
-/// DIY bracket-keyword yellow (【…】『…』, [color=yellow]).
-pub const KEYWORD_YELLOW: [u8; 4] = [255, 255, 0, 255];
+/// DIY bracket-keyword color (【…】『…』) — warm beige-gold #E7CD9C.
+pub const KEYWORD_YELLOW: [u8; 4] = [231, 205, 156, 255];
 
 /// Minimum rasterizer coverage we accept as "covered".
 ///
