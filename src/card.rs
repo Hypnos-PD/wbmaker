@@ -101,6 +101,38 @@ pub struct CardConfig {
     pub crest_icon1: String,  // "" | "builtin:<n>" | "upload"
     pub crest_icon2: String,
     pub show_crest_icon2: bool,
+    /// 多纹章块（能力面板动态添加）；非空时优先于上面的单纹章旧字段
+    #[serde(default)]
+    pub crests: Vec<CrestBlock>,
+}
+
+/// 一个纹章块（能力面板可添加多个）
+#[derive(Deserialize, Clone, Default)]
+pub struct CrestBlock {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub text: String,
+    #[serde(default)]
+    pub border: u8,
+    #[serde(default = "default_crest_scale")]
+    pub scale: f32,
+    #[serde(default)]
+    pub icon1: String,
+    #[serde(default)]
+    pub icon2: String,
+    #[serde(default)]
+    pub show_icon2: bool,
+    #[serde(default = "default_crest_text_size")]
+    pub size: f32,
+}
+
+fn default_crest_scale() -> f32 {
+    1.0
+}
+
+fn default_crest_text_size() -> f32 {
+    32.4
 }
 
 impl Default for CardConfig {
@@ -160,6 +192,7 @@ impl Default for CardConfig {
             crest_icon1: String::new(),
             crest_icon2: String::new(),
             show_crest_icon2: false,
+            crests: Vec::new(),
         }
     }
 }

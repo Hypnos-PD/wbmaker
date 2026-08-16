@@ -380,3 +380,28 @@ label.file.small {
 }
 
 #cardNameTool { margin-left: 6px; }
+
+/* ---- 纹章块（动态列表） ---- */
+
+.crest-block {
+  border: 2px solid var(--border);
+  background: #fff;
+  padding: 10px;
+  margin-bottom: 12px;
+  box-shadow: 3px 3px 0 var(--border);
+}
+.crest-block .sub-head { margin-bottom: 8px; }
+.crest-block textarea,
+.crest-block input[type=text],
+.crest-block select {
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  width: 100%;
+  margin-top: 4px;
+}
+.crest-block label { margin-bottom: 8px; }

@@ -98,7 +98,6 @@
         <label><span data-i18n="trait">兵种类型</span>
           <input type="text" name="trait" placeholder="士兵 / 指挥官 …">
         </label>
-        <label class="check"><input type="checkbox" name="bgType" id="bgType"> <span data-i18n="bgType">一代暗色背景</span></label>
         <label><span data-i18n="bgAlpha">正文底透明度</span>
           <input type="range" name="bgAlpha" id="bgAlpha" min="0" max="100" step="1" value="30">
         </label>
@@ -145,41 +144,10 @@
 
         <div class="sub" id="crestBlock">
           <div class="sub-head">
-            <span><input type="checkbox" name="showCrest" id="showCrest"> <span data-i18n="crest">纹章</span></span>
-            <span class="tool">
-              <button type="button" class="mini" data-keyword="cre" data-i18n-title="keywordBtn" title="[b]关键词[/b]">[b]</button>
-              <button type="button" class="mini" data-size-down="cre">−</button>
-              <span class="size-val" id="creSize">81</span>
-              <button type="button" class="mini" data-size-up="cre">+</button>
-            </span>
+            <span data-i18n="crest">纹章</span>
+            <button type="button" class="mini" id="btnAddCrest" data-i18n="addCrest">＋ 添加纹章</button>
           </div>
-          <label class="crest-inline"><span data-i18n="crestName">纹章名称</span>
-            <input type="text" name="crestName">
-          </label>
-          <label class="crest-inline"><span data-i18n="crestBorder">纹章边框</span>
-            <select name="crestBorder" id="crestBorder">
-              <option value="0" data-i18n="crestBorder0">纹章</option>
-              <option value="1" data-i18n="crestBorder1">信仰</option>
-              <option value="2" data-i18n="crestBorder2">激奏</option>
-              <option value="3" data-i18n="crestBorder3">结晶</option>
-            </select>
-          </label>
-          <label><span data-i18n="crestScale">名称区域缩放</span>
-            <input type="range" name="crestScale" id="crestScale" min="0.1" max="1.5" step="0.1" value="1.0">
-          </label>
-          <div class="crest-picker" id="crest1Picker">
-            <div class="sub-head"><span data-i18n="crestIcon1">纹章图标 1</span>
-              <label class="file small"><input type="file" accept="image/*" data-crest-upload="1"> <span data-i18n="uploadCrest">上传</span></label>
-            </div>
-            <div class="crest-grid" data-crest-grid="1"></div>
-          </div>
-          <div class="crest-picker" id="crest2Picker">
-            <div class="sub-head"><span><input type="checkbox" name="showCrestIcon2" id="showCrestIcon2"> <span data-i18n="crestIcon2">纹章图标 2</span></span>
-              <label class="file small"><input type="file" accept="image/*" data-crest-upload="2"> <span data-i18n="uploadCrest">上传</span></label>
-            </div>
-            <div class="crest-grid" data-crest-grid="2"></div>
-          </div>
-          <textarea name="cre" rows="2"></textarea>
+          <div id="crestList"></div>
         </div>
 
         <div class="sub" id="illuBlock">

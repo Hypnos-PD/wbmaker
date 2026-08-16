@@ -6,7 +6,7 @@
 //! constants are ported from sv-byd-diy's `ui/main.tscn` / `ui/card_panel.gd`.
 
 use ab_glyph::{Font, ScaleFont};
-use crate::card::CardConfig;
+use crate::card::{CardConfig, CrestBlock};
 use crate::render::{fill_rect, blit_cover};
 use crate::text::TextEngine;
 use image::{DynamicImage, ImageFormat, RgbaImage};
@@ -399,7 +399,6 @@ pub fn render_diy(
     let d2 = &config.detail2;
     let ev = &config.evolve;
     let sup = &config.super_evolve;
-    let cre = &config.crest;
     let has_d1 = !d1.trim().is_empty();
 
     // d1
@@ -457,89 +456,23 @@ pub fn render_diy(
         }
         y += bh + SECTION_GAP;
     }
-    // crest
-    if config.show_crest {
-        let v = config.crest_scale.clamp(0.1, 1.5);
-        let band_h = CREST_BAND_H * v;
-        let text_h = measure_rich(&engine, cre, text_w, config.crest_size);
-        let sec_h = CREST_BAND_DY + band_h + CREST_TEXT_GAP + text_h + CREST_BOTTOM;
-        let banner_key = CREST_BORDERS
-            .get(config.crest_border as usize)
-            .copied()
-            .unwrap_or("Crest");
-        // section background: detail_crest.png fills the whole section rect
-        let sec_banner = decode(
-            diy_effect_bytes("detail_crest").unwrap(),
-            "crest section banner",
-        )?;
-        blit_stretch(&mut canvas, &sec_banner, VB_X, y, VB_W, sec_h);
-        // icon band: border texture stretched over the band rect
-        let band_x = VB_X + CREST_BAND_DX;
-        let band_y = y + CREST_BAND_DY;
-        let band_banner = decode(diy_effect_bytes(banner_key).unwrap(), "crest band banner")?;
-        blit_stretch(
-            &mut canvas,
-            &band_banner,
-            band_x,
-            band_y,
-            CREST_BAND_W,
-            band_h,
-        );
-        let icon_side = (CREST_ICON_SIDE * v).clamp(8.0, band_h);
-        let mut ix = band_x + 32.0;
-        let icon1 = resolve_crest(&config.crest_icon1, crest1_png)?;
-        if let Some(ic) = icon1 {
-            blit_stretch(
-                &mut canvas,
-                &ic,
-                ix,
-                band_y + (band_h - icon_side) / 2.0,
-                icon_side,
-                icon_side,
-            );
-            ix += icon_side + 4.0;
+    // crest blocks（能力面板可添加多个；兼容旧的单纹章字段）
+    if !config.crests.is_empty() {
+        for block in &config.crests {
+            y += draw_crest_block(&mut canvas, &engine, block, &spit_img, crest1_png, crest2_png, text_x, text_w, y)?;
         }
-        if config.show_crest_icon2 {
-            let icon2 = resolve_crest(&config.crest_icon2, crest2_png)?;
-            if let Some(ic) = icon2 {
-                blit_stretch(
-                    &mut canvas,
-                    &ic,
-                    ix,
-                    band_y + (band_h - icon_side) / 2.0,
-                    icon_side,
-                    icon_side,
-                );
-                ix += icon_side + 4.0;
-            }
-        }
-        if !config.crest_name.is_empty() {
-            let name_size = config.crest_size;
-            engine.draw_plain(
-                &mut canvas,
-                &engine.title,
-                &config.crest_name,
-                ix + 8.0,
-                band_y + (band_h - name_size) / 2.0,
-                name_size,
-                crate::text::BODY,
-                0.0,
-            );
-        }
-        if !cre.trim().is_empty() {
-            engine.draw_wrapped_rich(
-                &mut canvas,
-                &engine.title,
-                cre,
-                text_x,
-                y + CREST_BAND_DY + band_h + CREST_TEXT_GAP,
-                text_w,
-                config.crest_size,
-                LINE_GAP,
-                PARA_GAP,
-                spit_img.as_ref(),
-            );
-        }
+    } else if config.show_crest {
+        let legacy = CrestBlock {
+            name: config.crest_name.clone(),
+            text: config.crest.clone(),
+            border: config.crest_border,
+            scale: config.crest_scale,
+            icon1: config.crest_icon1.clone(),
+            icon2: config.crest_icon2.clone(),
+            show_icon2: config.show_crest_icon2,
+            size: config.crest_size,
+        };
+        y += draw_crest_block(&mut canvas, &engine, &legacy, &spit_img, crest1_png, crest2_png, text_x, text_w, y)?;
     }
 
     // 6. signature rows
@@ -684,6 +617,99 @@ fn draw_split(
     } else {
         *y += 2.0 + SECTION_GAP;
     }
+}
+
+/// Draw one crest block: banner band（名字优先、图标跟在名字后面）+ 描述文字。
+/// 名字与描述的首字与正文首字水平对齐（x = text_x）。返回块占用的总高度。
+#[allow(clippy::too_many_arguments)]
+fn draw_crest_block(
+    canvas: &mut RgbaImage,
+    engine: &TextEngine,
+    block: &CrestBlock,
+    spit_img: &Option<RgbaImage>,
+    crest1_png: Option<&[u8]>,
+    crest2_png: Option<&[u8]>,
+    text_x: f32,
+    text_w: f32,
+    y: f32,
+) -> Result<f32, String> {
+    let v = block.scale.clamp(0.1, 1.5);
+    let band_h = CREST_BAND_H * v;
+    let text_h = measure_rich(engine, &block.text, text_w, block.size);
+    let sec_h = CREST_BAND_DY + band_h + CREST_TEXT_GAP + text_h + CREST_BOTTOM;
+    let banner_key = CREST_BORDERS
+        .get(block.border as usize)
+        .copied()
+        .unwrap_or("Crest");
+    // section background: detail_crest.png fills the whole section rect
+    let sec_banner = decode(
+        diy_effect_bytes("detail_crest").unwrap(),
+        "crest section banner",
+    )?;
+    blit_stretch(canvas, &sec_banner, VB_X, y, VB_W, sec_h);
+    // icon band: border texture stretched over the band rect（与文字同宽）
+    let band_y = y + CREST_BAND_DY;
+    let band_banner = decode(diy_effect_bytes(banner_key).unwrap(), "crest band banner")?;
+    blit_stretch(canvas, &band_banner, VB_X, band_y, VB_W, band_h);
+
+    // 名字优先：从 text_x 开始，与正文首字对齐；图标跟在名字后面
+    let name_size = block.size;
+    let mut nx = text_x;
+    if !block.name.is_empty() {
+        engine.draw_plain(
+            canvas,
+            &engine.title,
+            &block.name,
+            nx,
+            band_y + (band_h - name_size) / 2.0,
+            name_size,
+            crate::text::BODY,
+            0.0,
+        );
+        let (nw, _) = engine.measure(&engine.title, &block.name, name_size);
+        nx += nw + 10.0;
+    }
+    let icon_side = (CREST_ICON_SIDE * v).clamp(8.0, band_h);
+    let icon1 = resolve_crest(&block.icon1, crest1_png)?;
+    if let Some(ic) = icon1 {
+        blit_stretch(
+            canvas,
+            &ic,
+            nx,
+            band_y + (band_h - icon_side) / 2.0,
+            icon_side,
+            icon_side,
+        );
+        nx += icon_side + 4.0;
+    }
+    if block.show_icon2 {
+        let icon2 = resolve_crest(&block.icon2, crest2_png)?;
+        if let Some(ic) = icon2 {
+            blit_stretch(
+                canvas,
+                &ic,
+                nx,
+                band_y + (band_h - icon_side) / 2.0,
+                icon_side,
+                icon_side,
+            );
+        }
+    }
+    if !block.text.trim().is_empty() {
+        engine.draw_wrapped_rich(
+            canvas,
+            &engine.title,
+            &block.text,
+            text_x,
+            y + CREST_BAND_DY + band_h + CREST_TEXT_GAP,
+            text_w,
+            block.size,
+            LINE_GAP,
+            PARA_GAP,
+            spit_img.as_ref(),
+        );
+    }
+    Ok(sec_h + SECTION_GAP)
 }
 
 /// Plain (no banner) rich text section, advancing the VBox cursor.

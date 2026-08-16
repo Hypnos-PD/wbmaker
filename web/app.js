@@ -114,12 +114,12 @@ const UI = {
     cropTitle: "裁切立绘", cropHint: "滚轮缩放 · 拖拽平移",
     cropZoomIn: "放大", cropZoomOut: "缩小", cropReset: "复位", cropCancel: "取消", cropConfirm: "确认",
     styleWb: "单卡图", styleDiy: "效果图",
-    diyPanel: "DIY 面板", trait: "兵种类型", traitTitle: "类型", bgType: "一代暗色背景", bgAlpha: "正文底透明度",
+    diyPanel: "能力面板", trait: "兵种类型", traitTitle: "类型", bgAlpha: "正文底透明度",
     detail1: "正文", evolve: "进化", super: "超进化", crest: "纹章",
     crestName: "纹章名称", crestBorder: "纹章边框", crestScale: "名称区域缩放",
     crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
     illustrator: "画师", diyAuthor: "脚注", illusTitle: "画师:",
-    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", nameSize: "卡名字号",
+    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", nameSize: "卡名字号",
     crestBorder0: "纹章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "结晶",
   },
   eng: {
@@ -136,12 +136,12 @@ const UI = {
     cropTitle: "Crop Art", cropHint: "Scroll to zoom · Drag to pan",
     cropZoomIn: "Zoom In", cropZoomOut: "Zoom Out", cropReset: "Reset", cropCancel: "Cancel", cropConfirm: "Apply",
     styleWb: "Card Image", styleDiy: "Effect Image",
-    diyPanel: "DIY Panel", trait: "Trait", traitTitle: "Type", bgType: "OG Background", bgAlpha: "Text Box Opacity",
+    diyPanel: "Ability Panel", trait: "Trait", traitTitle: "Type", bgAlpha: "Text Box Opacity",
     detail1: "Skill Text", evolve: "Evolve", super: "Super Evolve", crest: "Crest",
     crestName: "Crest Name", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
     illustrator: "Illustrator", diyAuthor: "Footnote", illusTitle: "Illus by ",
-    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", nameSize: "Name size",
+    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", nameSize: "Name size",
     crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
   jpn: {
@@ -158,12 +158,12 @@ const UI = {
     cropTitle: "イラストをトリミング", cropHint: "ホイールで拡大縮小 · ドラッグで移動",
     cropZoomIn: "拡大", cropZoomOut: "縮小", cropReset: "リセット", cropCancel: "キャンセル", cropConfirm: "確定",
     styleWb: "カード画像", styleDiy: "効果画像",
-    diyPanel: "DIY パネル", trait: "兵種タイプ", traitTitle: "タイプ", bgType: "初代背景", bgAlpha: "テキスト背景の透明度",
+    diyPanel: "能力パネル", trait: "兵種タイプ", traitTitle: "タイプ", bgAlpha: "テキスト背景の透明度",
     detail1: "効果テキスト", evolve: "進化", super: "超進化", crest: "紋章",
     crestName: "紋章名", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
     crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
     illustrator: "イラストレーター", diyAuthor: "脚注", illusTitle: "イラスト:",
-    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", nameSize: "カード名サイズ",
+    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ 紋章を追加", nameSize: "カード名サイズ",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
   kor: {
@@ -180,12 +180,12 @@ const UI = {
     cropTitle: "일러스트 자르기", cropHint: "휠로 확대/축소 · 드래그로 이동",
     cropZoomIn: "확대", cropZoomOut: "축소", cropReset: "초기화", cropCancel: "취소", cropConfirm: "확인",
     styleWb: "카드 이미지", styleDiy: "효과 이미지",
-    diyPanel: "DIY 패널", trait: "병종", traitTitle: "타입", bgType: "1세대 배경", bgAlpha: "텍스트 배경 투명도",
+    diyPanel: "능력 패널", trait: "병종", traitTitle: "타입", bgAlpha: "텍스트 배경 투명도",
     detail1: "효과 텍스트", evolve: "진화", super: "초진화", crest: "문장",
     crestName: "문장 이름", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
     crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
     illustrator: "일러스트레이터", diyAuthor: "각주", illusTitle: "일러스트: ",
-    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", nameSize: "카드 이름 크기",
+    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", nameSize: "카드 이름 크기",
     crestBorder0: "문장", crestBorder1: "신앙", crestBorder2: "가속", crestBorder3: "결정",
   },
   cht: {
@@ -202,12 +202,12 @@ const UI = {
     cropTitle: "裁切立繪", cropHint: "滾輪縮放 · 拖曳平移",
     cropZoomIn: "放大", cropZoomOut: "縮小", cropReset: "復位", cropCancel: "取消", cropConfirm: "確認",
     styleWb: "單卡圖", styleDiy: "效果圖",
-    diyPanel: "DIY 面板", trait: "兵種類型", traitTitle: "類型", bgType: "一代暗色背景", bgAlpha: "正文底透明度",
+    diyPanel: "能力面板", trait: "兵種類型", traitTitle: "類型", bgAlpha: "正文底透明度",
     detail1: "正文", evolve: "進化", super: "超進化", crest: "紋章",
     crestName: "紋章名稱", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
     illustrator: "畫師", diyAuthor: "腳註", illusTitle: "畫師:",
-    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", nameSize: "卡名字號",
+    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", nameSize: "卡名字號",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
 };
@@ -350,34 +350,27 @@ function collectConfig() {
     life: field('life').value,
     style: diy ? 'diy' : 'wb',
     // DIY-only fields (preserved when switching back and forth)
-    bg_type: field('bgType').checked ? 1 : 2,
+    bg_type: 2, // 一代暗色背景功能已移除
     trait_text: field('trait') ? field('trait').value : '',
     class_title: t('classLabel'),
     type_title: t('traitTitle'),
     class_text: CLASS_LABELS[currentLang][parseInt(field('class').value, 10) || 0] || '',
     illus_title: t('illusTitle'),
-    crest_border: parseInt(field('crestBorder').value, 10) || 0,
-    crest_scale: parseFloat(field('crestScale').value) || 1.0,
     d1_size: DIY_SIZES.d1 * 0.4,
     d2_size: DIY_SIZES.d2 * 0.4,
     ev_size: DIY_SIZES.ev * 0.4,
     super_size: DIY_SIZES.super * 0.4,
     crest_size: DIY_SIZES.cre * 0.4,
-    crest_icon1: crestSpec1,
-    crest_icon2: crestSpec2,
-    show_crest_icon2: field('showCrestIcon2').checked,
+    crests: collectCrests(),
     detail1: field('d1').value,
     detail2: '',
     show_detail2: false,
     evolve: field('ev').value,
     super_evolve: field('super').value,
-    crest: field('cre').value,
-    crest_name: field('crestName').value,
     illustrator: field('illustrator').value,
     diy: field('diy').value,
     show_evolve: field('showEvolve').checked,
     show_super: field('showSuper').checked,
-    show_crest: field('showCrest').checked,
     show_illustrator: field('showIllustrator').checked,
     show_diy: field('showDiy').checked,
     bg_alpha: (parseFloat(field('bgAlpha').value) || 0) / 100,
@@ -497,16 +490,16 @@ async function loadDefaultCard() {
 }
 
 function resetDiyFields() {
-  ['d1', 'ev', 'super', 'cre', 'crestName', 'trait', 'illustrator', 'diy'].forEach((n) => {
+  ['d1', 'ev', 'super', 'trait', 'illustrator', 'diy'].forEach((n) => {
     field(n).value = '';
   });
-  ['showEvolve', 'showSuper', 'showCrest', 'showIllustrator', 'showDiy', 'showCrestIcon2', 'bgType'].forEach((n) => {
+  ['showEvolve', 'showSuper', 'showIllustrator', 'showDiy'].forEach((n) => {
     field(n).checked = false;
   });
   field('bgAlpha').value = '30';
-  field('crestScale').value = '1.0';
-  field('crestBorder').value = '0';
   field('diy').value = DEFAULT_CARD.footnote[currentLang] || DEFAULT_CARD.footnote.chs;
+  document.getElementById('crestList').innerHTML = '';
+  addCrestBlock();
   for (const k of Object.keys(DIY_SIZES)) DIY_SIZES[k] = 81;
   refreshSizeLabels();
   crestSpec1 = 'builtin:0';
@@ -823,45 +816,98 @@ function insertAtCaret(textarea, tag) {
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-// Built-in crest icon picker (thumbnails served from web/crests/).
-function buildCrestGrids() {
-  document.querySelectorAll('[data-crest-grid]').forEach((grid) => {
-    const slot = grid.getAttribute('data-crest-grid');
-    grid.innerHTML = '';
-    builtinCrests.forEach((name, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'crest-cell';
-      btn.dataset.spec = `builtin:${idx}`;
-      btn.dataset.slot = slot;
-      const img = document.createElement('img');
-      img.src = `crests/${name}.png`;
-      img.alt = String(idx);
-      img.loading = 'lazy';
-      btn.appendChild(img);
-      btn.title = `${idx}: ${name}`;
-      btn.addEventListener('click', () => {
-        if (slot === '1') crestSpec1 = btn.dataset.spec;
-        else crestSpec2 = btn.dataset.spec;
-        // clear the upload label (uploaded bytes no longer used)
-        const upload = document.querySelector(`[data-crest-upload="${slot}"]`);
-        if (upload) {
-          upload.value = '';
-          upload.closest('label').querySelector('span').textContent = t('uploadCrest');
-        }
-        markCrestSelection();
-        renderPreview();
-      });
-      grid.appendChild(btn);
-    });
+// ---- 纹章块（动态添加/删除；图标用内置下拉 + 上传） ----
+
+let crestBlocks = 0;
+
+function crestIconOptions(selected) {
+  let html = `<option value="">无</option>`;
+  builtinCrests.forEach((name, idx) => {
+    html += `<option value="builtin:${idx}"${selected === `builtin:${idx}` ? ' selected' : ''}>内置 ${idx}</option>`;
   });
+  html += `<option value="upload"${selected === 'upload' ? ' selected' : ''}>上传</option>`;
+  return html;
 }
 
-function markCrestSelection() {
-  document.querySelectorAll('.crest-cell').forEach((cell) => {
-    const spec = cell.dataset.slot === '1' ? crestSpec1 : crestSpec2;
-    cell.classList.toggle('active', cell.dataset.spec === spec);
+function addCrestBlock() {
+  const list = document.getElementById('crestList');
+  const n = ++crestBlocks;
+  const div = document.createElement('div');
+  div.className = 'crest-block';
+  div.innerHTML = `
+    <div class="sub-head"><span>${t('crest')} ${n}</span>
+      <button type="button" class="mini" data-crest-remove>×</button></div>
+    <label class="crest-inline"><span>${t('crestName')}</span><input type="text" data-c-name></label>
+    <label class="crest-inline"><span>${t('crestBorder')}</span>
+      <select data-c-border>
+        <option value="0">${t('crestBorder0')}</option>
+        <option value="1">${t('crestBorder1')}</option>
+        <option value="2">${t('crestBorder2')}</option>
+        <option value="3">${t('crestBorder3')}</option>
+      </select></label>
+    <label><span>${t('crestScale')}</span>
+      <input type="range" data-c-scale min="0.1" max="1.5" step="0.1" value="1.0"></label>
+    <label class="crest-inline"><span>${t('crestIcon1')}</span>
+      <select data-c-icon1>${crestIconOptions('builtin:0')}</select></label>
+    <label class="crest-inline"><span>${t('crestIcon2')}</span>
+      <select data-c-icon2>${crestIconOptions('builtin:0')}</select>
+      <input type="checkbox" data-c-show2 checked></label>
+    <input type="file" accept="image/*" data-c-upload1 hidden>
+    <input type="file" accept="image/*" data-c-upload2 hidden>
+    <textarea data-c-text rows="2"></textarea>
+  `;
+  list.appendChild(div);
+  div.querySelector('[data-crest-remove]').addEventListener('click', () => {
+    div.remove();
+    renderPreview();
   });
+  const refresh = () => renderPreview();
+  div.querySelectorAll('input, select, textarea').forEach((el) => el.addEventListener('input', refresh));
+  div.querySelector('[data-c-icon1]').addEventListener('change', (e) => {
+    if (e.target.value === 'upload') div.querySelector('[data-c-upload1]').click();
+    else refresh();
+  });
+  div.querySelector('[data-c-icon2]').addEventListener('change', (e) => {
+    if (e.target.value === 'upload') div.querySelector('[data-c-upload2]').click();
+    else refresh();
+  });
+  div.querySelector('[data-c-upload1]').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try { crest1Bytes = await fileToPng(file); crestSpec1 = 'upload'; refresh(); }
+      catch (err) { alert(t('imageReadFailed') + err.message); }
+    }
+  });
+  div.querySelector('[data-c-upload2]').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try { crest2Bytes = await fileToPng(file); crestSpec2 = 'upload'; refresh(); }
+      catch (err) { alert(t('imageReadFailed') + err.message); }
+    }
+  });
+  return div;
+}
+
+function collectCrests() {
+  const blocks = [];
+  document.querySelectorAll('.crest-block').forEach((div) => {
+    const name = div.querySelector('[data-c-name]').value;
+    const text = div.querySelector('[data-c-text]').value;
+    if (!name.trim() && !text.trim()) return; // 空块跳过
+    const sel1 = div.querySelector('[data-c-icon1]');
+    const sel2 = div.querySelector('[data-c-icon2]');
+    blocks.push({
+      name,
+      text,
+      border: parseInt(div.querySelector('[data-c-border]').value, 10) || 0,
+      scale: parseFloat(div.querySelector('[data-c-scale]').value) || 1.0,
+      icon1: sel1.value === 'upload' ? crestSpec1 : sel1.value,
+      icon2: sel2.value === 'upload' ? crestSpec2 : sel2.value,
+      show_icon2: div.querySelector('[data-c-show2]').checked,
+      size: DIY_SIZES.cre * 0.4,
+    });
+  });
+  return blocks;
 }
 
 function bindDiyControls() {
@@ -933,6 +979,10 @@ function bindEvents() {
     renderPreview();
   });
 
+  document.getElementById('btnAddCrest').addEventListener('click', () => {
+    addCrestBlock();
+    renderPreview();
+  });
   bindCropPanel();
   bindDiyControls();
 
@@ -963,8 +1013,7 @@ async function main() {
   } catch (e) {
     console.error(e);
   }
-  buildCrestGrids();
-  markCrestSelection();
+  addCrestBlock();
   await cardPromise;
   registerFonts(currentLang, await fontDownload);
   bindEvents();
