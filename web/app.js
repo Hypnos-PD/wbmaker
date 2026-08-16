@@ -337,8 +337,9 @@ async function ensureChunkFonts(prefix, manifestKey, texts, fallbackFile) {
 
 async function loadFonts(lang, cfg) {
   const texts = collectTextStrings(cfg);
-  // 署名行只需要画师/脚注文本的字符块
-  const sigTexts = [cfg.illus_title || '', cfg.illustrator || '', cfg.diy || ''];
+  // 署名行只需要画师/脚注文本的字符块；※ 是渲染器自动加在脚注前的前缀，
+  // 不在配置文本里，需要显式补上，否则它所在的分块不会被拉取
+  const sigTexts = ['※', cfg.illus_title || '', cfg.illustrator || '', cfg.diy || ''];
   // 数字字体（整文件，仅 124KB）
   const numberBuf = await loadFontFile(NUMBER_FONT);
   if (!registeredFonts.has('number')) {
