@@ -1,10 +1,10 @@
 import init, { render_card, register_font, version } from './pkg/wbmaker.js';
 
-let artBytes = null; // PNG bytes of uploaded art
+let artBytes = null; // PNG bytes of uploaded art (full resolution)
+let cropState = null; // normalized crop rect {x,y,w,h} applied at render time
 
 const KIND_KEYS = { 1: 'follower', 2: 'amulet', 3: 'spell' };
 const RARITY_KEYS = { 1: 'bronze', 2: 'silver', 3: 'gold', 4: 'legend' };
-const SPECIALS = ['style_101'];
 // Which specials are valid per kind (only style_101 is offered).
 const SPECIAL_BY_KIND = {
   follower: ['', 'style_101'],
@@ -64,11 +64,13 @@ const UI = {
     classLabel: "职业", specialFrame: "特殊框", kindLabel: "种类", rarityLabel: "稀有度",
     cost: "费用", attack: "攻击", defense: "体力",
     art: "立绘", artPh: "选择图片（PNG/JPG/WebP）",
-    exportPng: "导出 PNG", exportJson: "导出 JSON", importJson: "导入 JSON", reset: "重置",
+    exportPng: "导出 PNG", reset: "重置",
     previewLoading: "预览加载中…",
     renderFailed: "渲染失败：", exportFailed: "导出失败：", imageReadFailed: "图片读取失败：",
-    jsonParseFailed: "JSON 解析失败：", fontLoadFailed: "字体加载失败: ", fontRegFailed: "字体注册失败: ",
+    fontLoadFailed: "字体加载失败: ", fontRegFailed: "字体注册失败: ",
     normal: "普通", langTitle: "切换语言 / Language",
+    cropTitle: "裁切立绘", cropHint: "滚轮缩放 · 拖拽平移",
+    cropZoomIn: "放大", cropZoomOut: "缩小", cropReset: "复位", cropCancel: "取消", cropConfirm: "确认",
   },
   eng: {
     brand: "Card Maker", backToWba: "Back to WBA",
@@ -76,11 +78,13 @@ const UI = {
     classLabel: "Class", specialFrame: "Special Frame", kindLabel: "Type", rarityLabel: "Rarity",
     cost: "Cost", attack: "Attack", defense: "Defense",
     art: "Art", artPh: "Choose image (PNG/JPG/WebP)",
-    exportPng: "Export PNG", exportJson: "Export JSON", importJson: "Import JSON", reset: "Reset",
+    exportPng: "Export PNG", reset: "Reset",
     previewLoading: "Loading preview…",
     renderFailed: "Render failed: ", exportFailed: "Export failed: ", imageReadFailed: "Failed to read image: ",
-    jsonParseFailed: "Failed to parse JSON: ", fontLoadFailed: "Failed to load font: ", fontRegFailed: "Failed to register font: ",
+    fontLoadFailed: "Failed to load font: ", fontRegFailed: "Failed to register font: ",
     normal: "Normal", langTitle: "Switch language / 语言",
+    cropTitle: "Crop Art", cropHint: "Scroll to zoom · Drag to pan",
+    cropZoomIn: "Zoom In", cropZoomOut: "Zoom Out", cropReset: "Reset", cropCancel: "Cancel", cropConfirm: "Apply",
   },
   jpn: {
     brand: "カードメーカー", backToWba: "WBAに戻る",
@@ -88,11 +92,13 @@ const UI = {
     classLabel: "クラス", specialFrame: "特殊フレーム", kindLabel: "種類", rarityLabel: "レアリティ",
     cost: "コスト", attack: "攻撃力", defense: "体力",
     art: "イラスト", artPh: "画像を選択（PNG/JPG/WebP）",
-    exportPng: "PNG 出力", exportJson: "JSON 出力", importJson: "JSON 読込", reset: "リセット",
+    exportPng: "PNG 出力", reset: "リセット",
     previewLoading: "プレビュー読込中…",
     renderFailed: "描画失敗：", exportFailed: "出力失敗：", imageReadFailed: "画像読込失敗：",
-    jsonParseFailed: "JSON 解析失敗：", fontLoadFailed: "フォント読込失敗: ", fontRegFailed: "フォント登録失敗: ",
+    fontLoadFailed: "フォント読込失敗: ", fontRegFailed: "フォント登録失敗: ",
     normal: "通常", langTitle: "言語切替 / Language",
+    cropTitle: "イラストをトリミング", cropHint: "ホイールで拡大縮小 · ドラッグで移動",
+    cropZoomIn: "拡大", cropZoomOut: "縮小", cropReset: "リセット", cropCancel: "キャンセル", cropConfirm: "確定",
   },
   kor: {
     brand: "카드 메이커", backToWba: "WBA로 돌아가기",
@@ -100,11 +106,13 @@ const UI = {
     classLabel: "클래스", specialFrame: "특수 프레임", kindLabel: "종류", rarityLabel: "레어도",
     cost: "코스트", attack: "공격력", defense: "생명력",
     art: "일러스트", artPh: "이미지 선택（PNG/JPG/WebP）",
-    exportPng: "PNG 내보내기", exportJson: "JSON 내보내기", importJson: "JSON 가져오기", reset: "초기화",
+    exportPng: "PNG 내보내기", reset: "초기화",
     previewLoading: "미리보기 로딩 중…",
     renderFailed: "렌더링 실패：", exportFailed: "내보내기 실패：", imageReadFailed: "이미지 읽기 실패：",
-    jsonParseFailed: "JSON 파싱 실패：", fontLoadFailed: "폰트 로드 실패: ", fontRegFailed: "폰트 등록 실패: ",
+    fontLoadFailed: "폰트 로드 실패: ", fontRegFailed: "폰트 등록 실패: ",
     normal: "일반", langTitle: "언어 전환 / Language",
+    cropTitle: "일러스트 자르기", cropHint: "휠로 확대/축소 · 드래그로 이동",
+    cropZoomIn: "확대", cropZoomOut: "축소", cropReset: "초기화", cropCancel: "취소", cropConfirm: "확인",
   },
   cht: {
     brand: "製卡器", backToWba: "返回 WBA",
@@ -112,11 +120,13 @@ const UI = {
     classLabel: "職業", specialFrame: "特殊框", kindLabel: "種類", rarityLabel: "稀有度",
     cost: "費用", attack: "攻擊", defense: "體力",
     art: "立繪", artPh: "選擇圖片（PNG/JPG/WebP）",
-    exportPng: "匯出 PNG", exportJson: "匯出 JSON", importJson: "匯入 JSON", reset: "重設",
+    exportPng: "匯出 PNG", reset: "重設",
     previewLoading: "預覽載入中…",
     renderFailed: "渲染失敗：", exportFailed: "匯出失敗：", imageReadFailed: "圖片讀取失敗：",
-    jsonParseFailed: "JSON 解析失敗：", fontLoadFailed: "字體載入失敗: ", fontRegFailed: "字體註冊失敗: ",
+    fontLoadFailed: "字體載入失敗: ", fontRegFailed: "字體註冊失敗: ",
     normal: "普通", langTitle: "切換語言 / Language",
+    cropTitle: "裁切立繪", cropHint: "滾輪縮放 · 拖曳平移",
+    cropZoomIn: "放大", cropZoomOut: "縮小", cropReset: "復位", cropCancel: "取消", cropConfirm: "確認",
   },
 };
 
@@ -216,6 +226,13 @@ function collectConfig() {
   };
 }
 
+// Render-time config: base fields plus the current crop rect (never exported).
+function buildRenderConfig() {
+  const cfg = collectConfig();
+  if (cropState) cfg.crop = cropState;
+  return cfg;
+}
+
 function renderCard(config, art) {
   return render_card(JSON.stringify(config), art || new Uint8Array(0));
 }
@@ -223,7 +240,7 @@ function renderCard(config, art) {
 async function renderPreview() {
   try {
     await loadFonts(currentLang);
-    const cfg = collectConfig();
+    const cfg = buildRenderConfig();
     const png = renderCard(cfg, artBytes);
     const blob = new Blob([png], { type: 'image/png' });
     const url = URL.createObjectURL(blob);
@@ -250,57 +267,13 @@ function downloadBlob(blob, filename) {
 async function exportPng() {
   try {
     await loadFonts(currentLang);
-    const cfg = collectConfig();
+    const cfg = buildRenderConfig();
     const png = renderCard(cfg, artBytes);
     const name = (cfg.name || 'card').replace(/[\\/:*?"<>|]/g, '_');
     downloadBlob(new Blob([png], { type: 'image/png' }), `${name}.png`);
   } catch (e) {
     alert(t('exportFailed') + e.message);
   }
-}
-
-function exportJson() {
-  const cfg = collectConfig();
-  const name = (cfg.name || 'card').replace(/[\\/:*?"<>|]/g, '_');
-  downloadBlob(
-    new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' }),
-    `${name}.json`
-  );
-}
-
-function frameParts(frame) {
-  for (const [kindNum, kindName] of Object.entries(KIND_KEYS)) {
-    if (frame.startsWith(kindName + '_')) {
-      const suffix = frame.slice(kindName.length + 1);
-      const special = SPECIALS.find((s) => s === suffix) || '';
-      const rarity = RARITY_KEYS['4'] && Object.entries(RARITY_KEYS).find(([, n]) => n === suffix)?.[0];
-      return {
-        kind: kindNum,
-        rarity: rarity || '1',
-        special,
-      };
-    }
-  }
-  return { kind: '1', rarity: '1', special: '' };
-}
-
-function populateConfig(cfg) {
-  const p = frameParts(cfg.frame || 'follower_bronze');
-  field('kind').value = String(p.kind);
-  field('rarity').value = String(p.rarity);
-  field('class').value = String(cfg.class ?? 0);
-  field('name').value = cfg.name ?? '';
-  field('cost').value = cfg.cost ?? '';
-  field('atk').value = cfg.atk ?? '';
-  field('life').value = cfg.life ?? '';
-  // Adopt the imported card's language (keeps the shared setting in sync).
-  if (cfg.language && LANG_NAMES[cfg.language]) {
-    currentLang = cfg.language;
-    localStorage.setItem('lang', currentLang);
-    updateLangUI();
-  }
-  updateKindUI();
-  renderPreview();
 }
 
 function updateKindUI() {
@@ -325,6 +298,7 @@ function updateKindUI() {
 
 // Preload the default card (90074110 卓越创造物Ω) into the form, including art.
 async function loadDefaultCard() {
+  cropState = null;
   field('name').value = DEFAULT_CARD.name[currentLang] || DEFAULT_CARD.name.chs;
   field('class').value = String(DEFAULT_CARD.class);
   field('kind').value = String(DEFAULT_CARD.kind);
@@ -437,6 +411,7 @@ function switchLang(lang) {
 async function handleArtFile(file) {
   if (!file) {
     artBytes = null;
+    cropState = null;
     document.getElementById('artLabel').textContent = t('artPh');
     renderPreview();
     return;
@@ -450,8 +425,11 @@ async function handleArtFile(file) {
     ctx.drawImage(bmp, 0, 0);
     bmp.close();
     const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
-    const buf = await blob.arrayBuffer();
-    artBytes = new Uint8Array(buf);
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    const crop = await openCropPanel(buf);
+    if (!crop) return; // cancelled — keep the previous art
+    artBytes = buf;
+    cropState = crop;
     document.getElementById('artLabel').textContent = file.name;
     renderPreview();
   } catch (e) {
@@ -459,17 +437,144 @@ async function handleArtFile(file) {
   }
 }
 
-function importJsonFile(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const cfg = JSON.parse(reader.result);
-      populateConfig(cfg);
-    } catch (e) {
-      alert(t('jsonParseFailed') + e.message);
-    }
+// ---- Crop panel (one-shot: zoom + pan over a fixed 590:711 viewport) ----
+
+const cropView = {
+  iw: 0, ih: 0,   // image natural size (px)
+  vw: 0, vh: 0,   // viewport size (px)
+  k0: 0, maxK: 0, // cover-fit scale and zoom ceiling
+  k: 0, ox: 0, oy: 0, // current scale and offset
+  url: null,      // object URL of the art being cropped
+  resolve: null,
+};
+
+const cropImageEl = () => document.getElementById('cropImage');
+const cropViewportEl = () => document.getElementById('cropViewport');
+
+function applyCropTransform() {
+  cropImageEl().style.transform =
+    `translate(${cropView.ox}px, ${cropView.oy}px) scale(${cropView.k})`;
+}
+
+// Keep the image covering the viewport (no letterbox) while panning.
+function clampCropOffset() {
+  const { vw, vh, iw, ih, k } = cropView;
+  cropView.ox = Math.min(0, Math.max(vw - iw * k, cropView.ox));
+  cropView.oy = Math.min(0, Math.max(vh - ih * k, cropView.oy));
+}
+
+function resetCrop() {
+  const { vw, vh, iw, ih, k0 } = cropView;
+  cropView.k = k0;
+  cropView.ox = (vw - iw * k0) / 2;
+  cropView.oy = (vh - ih * k0) / 2;
+  applyCropTransform();
+}
+
+// Zoom by `factor`, keeping the image point under (mx, my) fixed.
+function cropZoomAt(mx, my, factor) {
+  const { k0, maxK } = cropView;
+  const next = Math.min(maxK, Math.max(k0, cropView.k * factor));
+  if (next === cropView.k) return;
+  const ix = (mx - cropView.ox) / cropView.k;
+  const iy = (my - cropView.oy) / cropView.k;
+  cropView.k = next;
+  cropView.ox = mx - ix * next;
+  cropView.oy = my - iy * next;
+  clampCropOffset();
+  applyCropTransform();
+}
+
+// Map the viewport back into image coordinates → normalized crop rect.
+function getCrop() {
+  const { vw, vh, iw, ih, k, ox, oy } = cropView;
+  return {
+    x: -ox / (k * iw),
+    y: -oy / (k * ih),
+    w: vw / (k * iw),
+    h: vh / (k * ih),
   };
-  reader.readAsText(file);
+}
+
+function closeCropPanel() {
+  document.getElementById('cropOverlay').hidden = true;
+  if (cropView.url) { URL.revokeObjectURL(cropView.url); cropView.url = null; }
+  cropImageEl().removeAttribute('src');
+}
+
+function openCropPanel(pngBytes) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('cropOverlay');
+    const img = cropImageEl();
+    const url = URL.createObjectURL(new Blob([pngBytes], { type: 'image/png' }));
+    cropView.url = url;
+    cropView.resolve = resolve;
+    img.onload = () => {
+      const viewport = cropViewportEl();
+      cropView.iw = img.naturalWidth;
+      cropView.ih = img.naturalHeight;
+      cropView.vw = viewport.clientWidth;
+      cropView.vh = viewport.clientHeight;
+      cropView.k0 = Math.max(cropView.vw / cropView.iw, cropView.vh / cropView.ih);
+      cropView.maxK = cropView.k0 * 8;
+      img.style.width = cropView.iw + 'px';
+      img.style.height = cropView.ih + 'px';
+      overlay.hidden = false;
+      resetCrop();
+    };
+    img.src = url;
+  });
+}
+
+function bindCropPanel() {
+  const viewport = cropViewportEl();
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = viewport.getBoundingClientRect();
+    cropZoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp(-e.deltaY * 0.0015));
+  }, { passive: false });
+
+  viewport.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    viewport.classList.add('dragging');
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    cropView.ox += e.clientX - lastX;
+    cropView.oy += e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    clampCropOffset();
+    applyCropTransform();
+  });
+  const endDrag = () => {
+    dragging = false;
+    viewport.classList.remove('dragging');
+  };
+  viewport.addEventListener('pointerup', endDrag);
+  viewport.addEventListener('pointercancel', endDrag);
+
+  document.getElementById('cropZoomIn').addEventListener('click', () =>
+    cropZoomAt(cropView.vw / 2, cropView.vh / 2, 1.25));
+  document.getElementById('cropZoomOut').addEventListener('click', () =>
+    cropZoomAt(cropView.vw / 2, cropView.vh / 2, 1 / 1.25));
+  document.getElementById('cropReset').addEventListener('click', resetCrop);
+  document.getElementById('cropCancel').addEventListener('click', () => {
+    closeCropPanel();
+    cropView.resolve(null);
+  });
+  document.getElementById('cropConfirm').addEventListener('click', () => {
+    const crop = getCrop();
+    closeCropPanel();
+    cropView.resolve(crop);
+  });
 }
 
 function bindEvents() {
@@ -490,20 +595,16 @@ function bindEvents() {
     handleArtFile(e.target.files[0]);
   });
 
-  document.getElementById('btnExportPng2').addEventListener('click', exportPng);
-  document.getElementById('btnImportJson').addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json';
-    input.onchange = () => input.files[0] && importJsonFile(input.files[0]);
-    input.click();
-  });
+  document.getElementById('btnExportPng').addEventListener('click', exportPng);
   document.getElementById('btnReset').addEventListener('click', async () => {
     artBytes = null;
+    cropState = null;
     document.getElementById('artInput').value = '';
     await loadDefaultCard();
     renderPreview();
   });
+
+  bindCropPanel();
 
   // Keep the shared language setting in sync across tabs.
   window.addEventListener('storage', (e) => {

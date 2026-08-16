@@ -9,6 +9,16 @@ pub const KIND_AMULET: u8 = 2;
 #[allow(dead_code)]
 pub const KIND_SPELL: u8 = 3;
 
+/// Normalized crop rectangle (each component in [0,1] relative to the original
+/// art image). Produced by the web crop panel; `None` falls back to cover-fit.
+#[derive(Deserialize, Clone)]
+pub struct ArtCrop {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
 #[derive(Deserialize, Clone)]
 #[serde(default)]
 pub struct CardConfig {
@@ -23,6 +33,9 @@ pub struct CardConfig {
     pub cost: String,         // cost text ("1" .. "10+")
     pub atk: String,
     pub life: String,
+
+    // --- art crop ---
+    pub crop: Option<ArtCrop>,
 
     // --- skill text sections ---
     // No text is rendered onto the pure card image. All of these fields are
@@ -74,6 +87,7 @@ impl Default for CardConfig {
             cost: String::from("1"),
             atk: String::from("1"),
             life: String::from("1"),
+            crop: None,
             detail1: String::new(),
             detail2: String::new(),
             evolve: String::new(),

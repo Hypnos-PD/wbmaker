@@ -3,7 +3,7 @@
 //! Layout follows wbunpacker's authoritative `config/render.toml`
 //! (782x1024 design space), which is also what WBArts's "game" card style uses.
 
-use crate::card::{CardConfig, KIND_FOLLOWER};
+use crate::card::{ArtCrop, CardConfig, KIND_FOLLOWER};
 use crate::text::TextEngine;
 use image::{DynamicImage, GenericImageView, ImageFormat, RgbaImage};
 
@@ -91,7 +91,12 @@ pub fn render(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u8>, 
         let art = image::load_from_memory(bytes)
             .map_err(|e| format!("art decode failed: {e}"))?
             .to_rgba8();
-        blit_cover(&mut canvas, &art, ART_X * s, ART_Y * s, ART_W * s, ART_H * s);
+        match &config.crop {
+            Some(crop) => blit_crop(
+                &mut canvas, &art, ART_X * s, ART_Y * s, ART_W * s, ART_H * s, crop,
+            ),
+            None => blit_cover(&mut canvas, &art, ART_X * s, ART_Y * s, ART_W * s, ART_H * s),
+        }
     } else {
         fill_rect(
             &mut canvas,
@@ -221,6 +226,37 @@ fn blit_cover(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f32
     image::imageops::overlay(canvas, &cropped, dx.round() as i64, dy.round() as i64);
 }
 
+/// Crop `src` using a normalized rect (`crop.x/y/w/h` in [0,1] relative to the
+/// image) and blit the result into the destination rectangle at full source
+/// resolution. The rect is clamped to the image bounds.
+fn blit_crop(
+    canvas: &mut RgbaImage,
+    src: &RgbaImage,
+    dx: f32,
+    dy: f32,
+    dw: f32,
+    dh: f32,
+    crop: &ArtCrop,
+) {
+    let (sw, sh) = src.dimensions();
+    if sw == 0 || sh == 0 {
+        return;
+    }
+    let dw = dw.round() as u32;
+    let dh = dh.round() as u32;
+    let sx = (crop.x.clamp(0.0, 1.0) * sw as f32).round() as u32;
+    let sy = (crop.y.clamp(0.0, 1.0) * sh as f32).round() as u32;
+    let cw = (crop.w.clamp(0.0, 1.0) * sw as f32).round() as u32;
+    let ch = (crop.h.clamp(0.0, 1.0) * sh as f32).round() as u32;
+    let sx = sx.min(sw.saturating_sub(1));
+    let sy = sy.min(sh.saturating_sub(1));
+    let cw = cw.clamp(1, sw - sx);
+    let ch = ch.clamp(1, sh - sy);
+    let cropped = src.view(sx, sy, cw, ch).to_image();
+    let resized = resize_lanczos(&cropped, dw, dh);
+    image::imageops::overlay(canvas, &resized, dx.round() as i64, dy.round() as i64);
+}
+
 /// Alpha-blend a filled rectangle.
 fn fill_rect(img: &mut RgbaImage, x: f32, y: f32, w: f32, h: f32, color: [u8; 4]) {
     let x0 = x.round() as i64;
@@ -239,6 +275,40 @@ fn fill_rect(img: &mut RgbaImage, x: f32, y: f32, w: f32, h: f32, color: [u8; 4]
             p[1] = (color[1] as f32 * a + p[1] as f32 * da) as u8;
             p[2] = (color[2] as f32 * a + p[2] as f32 * da) as u8;
             p[3] = 255;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::Rgba;
+
+    #[test]
+    fn blit_crop_extracts_quadrant() {
+        let mut src = RgbaImage::from_pixel(100, 100, Rgba([0, 0, 0, 255]));
+        for y in 0..50 {
+            for x in 0..50 {
+                src.put_pixel(x, y, Rgba([255, 0, 0, 255]));
+            }
+        }
+        let mut canvas = RgbaImage::new(50, 50);
+        let crop = ArtCrop { x: 0.0, y: 0.0, w: 0.5, h: 0.5 };
+        blit_crop(&mut canvas, &src, 0.0, 0.0, 50.0, 50.0, &crop);
+        for p in canvas.pixels() {
+            assert_eq!(*p, Rgba([255, 0, 0, 255]));
+        }
+    }
+
+    #[test]
+    fn blit_crop_clamps_out_of_bounds() {
+        let src = RgbaImage::from_pixel(100, 100, Rgba([0, 255, 0, 255]));
+        let mut canvas = RgbaImage::new(40, 40);
+        // Rect extends past the bottom-right; must clamp instead of panicking.
+        let crop = ArtCrop { x: 0.9, y: 0.9, w: 0.5, h: 0.5 };
+        blit_crop(&mut canvas, &src, 0.0, 0.0, 40.0, 40.0, &crop);
+        for p in canvas.pixels() {
+            assert_eq!(*p, Rgba([0, 255, 0, 255]));
         }
     }
 }

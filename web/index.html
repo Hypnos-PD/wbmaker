@@ -14,7 +14,6 @@
       <a class="topbar-logo" href="/">WB <span data-i18n="brand">制卡器</span></a>
       <a class="top-action" href="/" data-i18n="backToWba">返回 WBA</a>
       <div class="topbar-spacer"></div>
-      <button class="top-action" id="btnImportJson" type="button" data-i18n="importJson">导入 JSON</button>
       <button class="top-action" id="btnReset" type="button" data-i18n="reset">重置</button>
       <div class="dd-wrap" id="langDropdown"></div>
     </div>
@@ -94,10 +93,28 @@
         <div id="previewHint" data-i18n="previewLoading">预览加载中…</div>
       </div>
       <div class="preview-actions">
-        <button id="btnExportPng2" class="btn primary" data-i18n="exportPng">导出 PNG</button>
+        <button id="btnExportPng" class="btn primary" data-i18n="exportPng">导出 PNG</button>
       </div>
     </div>
   </main>
+
+  <div id="cropOverlay" class="crop-overlay" hidden>
+    <div class="crop-panel">
+      <div class="crop-title" data-i18n="cropTitle">裁切立绘</div>
+      <div id="cropViewport" class="crop-viewport">
+        <img id="cropImage" alt="" draggable="false">
+      </div>
+      <div class="crop-hint" data-i18n="cropHint">滚轮缩放 · 拖拽平移</div>
+      <div class="crop-actions">
+        <button id="cropZoomOut" class="btn" type="button" data-i18n="cropZoomOut">缩小</button>
+        <button id="cropReset" class="btn" type="button" data-i18n="cropReset">复位</button>
+        <button id="cropZoomIn" class="btn" type="button" data-i18n="cropZoomIn">放大</button>
+        <span class="crop-spacer"></span>
+        <button id="cropCancel" class="btn" type="button" data-i18n="cropCancel">取消</button>
+        <button id="cropConfirm" class="btn primary" type="button" data-i18n="cropConfirm">确认</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>

@@ -128,3 +128,70 @@ label.file input { display: none; }
   .layout { grid-template-columns: 1fr; }
   .preview { position: static; }
 }
+
+/* ---- crop overlay / viewport ---- */
+
+.crop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+.crop-overlay[hidden] { display: none; }
+
+.crop-panel {
+  background: var(--bg3);
+  border: 3px solid var(--border);
+  box-shadow: 8px 8px 0 var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 92vw;
+}
+
+.crop-title {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text2);
+}
+
+.crop-viewport {
+  position: relative;
+  overflow: hidden;
+  width: min(440px, 82vw);
+  aspect-ratio: 590 / 711;
+  background: #000;
+  border: 3px solid var(--border);
+  cursor: grab;
+  touch-action: none;
+}
+.crop-viewport.dragging { cursor: grabbing; }
+.crop-viewport img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.crop-hint {
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.crop-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.crop-spacer { flex: 1; }
