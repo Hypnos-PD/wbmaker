@@ -34,11 +34,11 @@ const FONT_MAP = {
 const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.digits.otf'; // 筑紫明朝（数字字体）
 // 署名行（画师/脚注）字体：Noto Sans CJK 各语言版本（画师=粗体，脚注=常规）
 const SIGNATURE_FONTS = {
-  chs: { illus: 'NotoSansSC-Bold.sub.otf', footnote: 'NotoSansSC-Bold.sub.otf' },
-  cht: { illus: 'NotoSansTC-Bold.sub.otf', footnote: 'NotoSansTC-Bold.sub.otf' },
-  jpn: { illus: 'NotoSansJP-Bold.sub.otf', footnote: 'NotoSansJP-Bold.sub.otf' },
-  kor: { illus: 'NotoSansKR-Bold.sub.otf', footnote: 'NotoSansKR-Bold.sub.otf' },
-  eng: { illus: 'NotoSansSC-Bold.sub.otf', footnote: 'NotoSansSC-Bold.sub.otf' },
+  chs: { illus: 'NotoSansSC-Regular.sub.otf', footnote: 'NotoSansSC-Regular.sub.otf' },
+  cht: { illus: 'NotoSansTC-Regular.sub.otf', footnote: 'NotoSansTC-Regular.sub.otf' },
+  jpn: { illus: 'NotoSansJP-Regular.sub.otf', footnote: 'NotoSansJP-Regular.sub.otf' },
+  kor: { illus: 'NotoSansKR-Regular.sub.otf', footnote: 'NotoSansKR-Regular.sub.otf' },
+  eng: { illus: 'NotoSansSC-Regular.sub.otf', footnote: 'NotoSansSC-Regular.sub.otf' },
 };
 
 // Default card preloaded on startup: 90074110 卓越创造物Ω (Masterwork Artifact Ω).
