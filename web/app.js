@@ -32,6 +32,14 @@ const FONT_MAP = {
   eng: 'MOC-KaiminTsuki-B.otf',
 };
 const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.digits.otf'; // 筑紫明朝（数字字体）
+// 署名行（画师/脚注）字体：Noto Sans CJK 各语言版本（画师=粗体，脚注=常规）
+const SIGNATURE_FONTS = {
+  chs: { illus: 'NotoSansSC-Bold.sub.otf', footnote: 'NotoSansSC-Regular.sub.otf' },
+  cht: { illus: 'NotoSansTC-Bold.sub.otf', footnote: 'NotoSansTC-Regular.sub.otf' },
+  jpn: { illus: 'NotoSansJP-Bold.sub.otf', footnote: 'NotoSansJP-Regular.sub.otf' },
+  kor: { illus: 'NotoSansKR-Bold.sub.otf', footnote: 'NotoSansKR-Regular.sub.otf' },
+  eng: { illus: 'NotoSansSC-Bold.sub.otf', footnote: 'NotoSansSC-Regular.sub.otf' },
+};
 
 // Default card preloaded on startup: 90074110 卓越创造物Ω (Masterwork Artifact Ω).
 // Skill texts come from WBArts data/cards.json (game markup converted to the
@@ -281,11 +289,15 @@ function registerFonts(lang, bufs) {
 async function loadFonts(lang) {
   const bufs = await startFontDownload(lang);
   registerFonts(lang, bufs);
-  // 画师行的中文黑体（其他语言暂沿用标题字体，后续再补）
-  if (lang === 'chs' && !registeredFonts.has('illus_chs')) {
-    const illus = await loadFontFile('FZLanTYJW.TTF');
-    if (!register_font('illus_chs', illus)) throw new Error(t('fontRegFailed') + 'illus_chs');
-    registeredFonts.add('illus_chs');
+  // 署名行字体：Noto Sans CJK 对应语言版本（画师=粗体，脚注=常规）
+  const sig = SIGNATURE_FONTS[lang] || SIGNATURE_FONTS.chs;
+  const keys = [`illus_${lang}`, `footnote_${lang}`];
+  const files = [sig.illus, sig.footnote];
+  for (let i = 0; i < keys.length; i++) {
+    if (registeredFonts.has(keys[i])) continue;
+    const buf = await loadFontFile(files[i]);
+    if (!register_font(keys[i], buf)) throw new Error(t('fontRegFailed') + keys[i]);
+    registeredFonts.add(keys[i]);
   }
 }
 

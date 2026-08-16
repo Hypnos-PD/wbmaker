@@ -531,12 +531,9 @@ pub fn render_diy(
 
     // 6. signature rows
     if config.show_illustrator && !config.illustrator.trim().is_empty() {
-        // 画师行：中文用黑体（illus_chs，方正兰亭圆），其他语言暂沿用标题字体
-        let illus_font = if config.language == "chs" {
-            crate::text::font_by_key("illus_chs").unwrap_or_else(|| engine.title.clone())
-        } else {
-            engine.title.clone()
-        };
+        // 画师行：Noto Sans CJK 对应语言版本（粗体），缺失时回退标题字体
+        let illus_font = crate::text::font_by_key(&format!("illus_{}", config.language))
+            .unwrap_or_else(|| engine.title.clone());
         let label = if config.illus_title.is_empty() { "画师：" } else { &config.illus_title };
         let (lw, _) = engine.measure(&illus_font, label, DEFAULT_TEXT_SIZE);
         engine.draw_plain(
@@ -561,10 +558,13 @@ pub fn render_diy(
         );
     }
     if config.show_diy && !config.diy.is_empty() {
-        let (w, _) = engine.measure(&engine.title, &config.diy, DIY_SIZE);
+        // 脚注：Noto Sans CJK 对应语言版本（常规），缺失时回退标题字体
+        let footnote_font = crate::text::font_by_key(&format!("footnote_{}", config.language))
+            .unwrap_or_else(|| engine.title.clone());
+        let (w, _) = engine.measure(&footnote_font, &config.diy, DIY_SIZE);
         engine.draw_plain(
             &mut canvas,
-            &engine.title,
+            &footnote_font,
             &config.diy,
             (DIY_RIGHT - w).max(DIY_X),
             DIY_Y,
