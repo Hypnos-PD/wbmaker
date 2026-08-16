@@ -9,7 +9,6 @@ let crest2Bytes = null; // uploaded crest icon 2 (PNG bytes)
 let crestSpec1 = "builtin:0"; // '', 'builtin:<n>' or 'upload'
 let crestSpec2 = "builtin:0";
 let builtinCrests = []; // names from the wasm (index order = builtin:<n>)
-let nameOffset = 0; // DIY card-name font size offset (±2 steps)
 
 // Per-section font sizes in the BYD-DIY tool's unit (81 @ 0.4 scale = 32.4 px).
 const DIY_SIZES = { d1: 81, d2: 81, ev: 81, super: 81, cre: 81 };
@@ -88,7 +87,7 @@ const UI = {
     detail1: "正文", detail2: "第二段正文", evolve: "进化", super: "超进化", crest: "纹章",
     crestName: "纹章名称", crestBorder: "纹章边框", crestScale: "名称区域缩放",
     crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
-    illustrator: "画师", diyAuthor: "DIY 作者", peculiar: "异画",
+    illustrator: "画师", diyAuthor: "DIY 作者",
     keywordBtn: "[b]关键词[/b]", nameSize: "卡名字号",
     crestBorder0: "纹章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "结晶",
   },
@@ -110,7 +109,7 @@ const UI = {
     detail1: "Skill Text", detail2: "Second Skill Text", evolve: "Evolve", super: "Super Evolve", crest: "Crest",
     crestName: "Crest Name", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
-    illustrator: "Illustrator", diyAuthor: "DIY Author", peculiar: "Alter Art",
+    illustrator: "Illustrator", diyAuthor: "DIY Author", "Alter Art",
     keywordBtn: "[b]keyword[/b]", nameSize: "Name size",
     crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
@@ -132,7 +131,7 @@ const UI = {
     detail1: "効果テキスト", detail2: "第二効果テキスト", evolve: "進化", super: "超進化", crest: "紋章",
     crestName: "紋章名", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
     crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
-    illustrator: "イラストレーター", diyAuthor: "DIY 作者", peculiar: "異画",
+    illustrator: "イラストレーター", diyAuthor: "DIY 作者", "異画",
     keywordBtn: "[b]キーワード[/b]", nameSize: "カード名サイズ",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
@@ -154,7 +153,7 @@ const UI = {
     detail1: "효과 텍스트", detail2: "두 번째 효과 텍스트", evolve: "진화", super: "초진화", crest: "문장",
     crestName: "문장 이름", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
     crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
-    illustrator: "일러스트레이터", diyAuthor: "DIY 제작자", peculiar: "얼터 아트",
+    illustrator: "일러스트레이터", diyAuthor: "DIY 제작자",
     keywordBtn: "[b]키워드[/b]", nameSize: "카드 이름 크기",
     crestBorder0: "문장", crestBorder1: "신앙", crestBorder2: "가속", crestBorder3: "결정",
   },
@@ -176,7 +175,7 @@ const UI = {
     detail1: "正文", detail2: "第二段正文", evolve: "進化", super: "超進化", crest: "紋章",
     crestName: "紋章名稱", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
-    illustrator: "畫師", diyAuthor: "DIY 作者", peculiar: "異畫",
+    illustrator: "畫師", diyAuthor: "DIY 作者",
     keywordBtn: "[b]關鍵詞[/b]", nameSize: "卡名字號",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
@@ -285,11 +284,7 @@ function rebuildRarity() {
   const rarity = field('rarity');
   const cur = rarity.value;
   const labels = RARITY_LABELS[currentLang];
-  let html = labels.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
-  // Keep the 异画 option in the DOM so switching styles preserves the value;
-  // it is merely hidden in WB mode (rendered as legend there).
-  html += `<option value="5"${isDiy() ? '' : ' hidden'}>${t('peculiar')}</option>`;
-  rarity.innerHTML = html;
+  rarity.innerHTML = labels.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
   if (cur) rarity.value = cur;
 }
 
@@ -307,7 +302,7 @@ function collectConfig() {
     language: currentLang,
     class: parseInt(field('class').value, 10) || 0,
     kind: parseInt(kind, 10) || 1,
-    rarity: isDiy() ? (parseInt(field('rarity').value, 10) || 1) : Math.min(parseInt(field('rarity').value, 10) || 1, 4),
+    rarity: parseInt(field('rarity').value, 10) || 1,
     frame,
     cost: field('cost').value,
     atk: field('atk').value,
@@ -321,7 +316,6 @@ function collectConfig() {
     class_text: CLASS_LABELS[currentLang][parseInt(field('class').value, 10) || 0] || '',
     crest_border: parseInt(field('crestBorder').value, 10) || 0,
     crest_scale: parseFloat(field('crestScale').value) || 1.0,
-    name_size_offset: nameOffset,
     d1_size: DIY_SIZES.d1 * 0.4,
     d2_size: DIY_SIZES.d2 * 0.4,
     ev_size: DIY_SIZES.ev * 0.4,
@@ -470,7 +464,6 @@ function resetDiyFields() {
   crestSpec2 = 'builtin:0';
   crest1Bytes = null;
   crest2Bytes = null;
-  nameOffset = 0;
   document.querySelectorAll('[data-crest-upload]').forEach((inp) => {
     inp.value = '';
     inp.closest('label').querySelector('span').textContent = t('uploadCrest');
@@ -667,8 +660,6 @@ function openCropPanel(pngBytes) {
     const overlay = document.getElementById('cropOverlay');
     const img = cropImageEl();
     const viewport = cropViewportEl();
-    // window ratio per style: WB 590:711, DIY 464:560
-    viewport.style.aspectRatio = isDiy() ? '464 / 560' : '590 / 711';
     const url = URL.createObjectURL(new Blob([pngBytes], { type: 'image/png' }));
     cropView.url = url;
     cropView.resolve = resolve;
@@ -808,8 +799,6 @@ function markCrestSelection() {
 }
 
 function bindDiyControls() {
-  document.getElementById('btnNameUp').addEventListener('click', () => { nameOffset += 2; renderPreview(); });
-  document.getElementById('btnNameDown').addEventListener('click', () => { nameOffset -= 2; renderPreview(); });
   document.querySelectorAll('[data-size-up]').forEach((btn) => {
     btn.addEventListener('click', () => { changeSize(btn.dataset.sizeUp, 2); renderPreview(); });
   });

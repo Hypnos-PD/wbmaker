@@ -49,7 +49,6 @@ const diyCfg = {
   class_text: '龙族',
   crest_border: 0,
   crest_scale: 1.0,
-  name_size_offset: 0,
   d1_size: 32.4,
   d2_size: 32.4,
   ev_size: 32.4,

@@ -362,42 +362,6 @@ impl TextEngine {
         buf
     }
 
-    /// Number with a colored glow (DIY style cost/atk/def): blurred glow in
-    /// `glow_color` at `glow_alpha`, white core on top.
-    pub fn draw_number_glow(
-        &self,
-        img: &mut RgbaImage,
-        text: &str,
-        center_x: f32,
-        center_y: f32,
-        size: f32,
-        max_width: f32,
-        glow_color: [u8; 4],
-        glow_alpha: f32,
-    ) {
-        let font = &self.number;
-        let mut w = self.measure_spaced(font, text, size, 0.0).0;
-        let mut s = size;
-        while s > 24.0 && w > max_width {
-            s -= 2.0;
-            w = self.measure_spaced(font, text, s, 0.0).0;
-        }
-        let radius = ((s * 0.10).round() as u32).clamp(1, 12);
-        let pad = (s * 0.07).ceil() as u32 + 1 + radius * 2;
-        let buf = self.render_number_buffer(text, s, 0.0, pad);
-        let (bw, bh) = buf.dimensions();
-        let dx = center_x - bw as f32 / 2.0;
-        let dy = center_y - bh as f32 / 2.0;
-        if glow_alpha > 0.0 {
-            let mut blurred = box_blur_alpha(&buf, radius);
-            blurred = box_blur_alpha(&blurred, radius);
-            let mut glow = glow_color;
-            glow[3] = (glow_alpha * 255.0).round() as u8;
-            composite_tint(img, &blurred, dx, dy, glow);
-        }
-        composite_tint(img, &buf, dx, dy, BODY);
-    }
-
     /// Draw one line of styled runs (no wrapping). `y` is the text top.
     pub fn draw_rich_line(
         &self,

@@ -16,18 +16,6 @@ DST = os.path.join(os.path.dirname(__file__), "..", "assets", "diy")
 
 CLASSES = ["forestcraft", "swordcraft", "runecraft", "dragoncraft",
            "abysscraft", "havencraft", "portalcraft", "neutral"]
-KINDS = ["unit", "spell", "amulet"]
-RARES = ["brone", "silver", "gold", "legend", "peculiar"]
-
-# Display sizes in the 1920x1080 design space (from ui/main.tscn + card_panel.gd):
-#   unit   : native 1410x1873 @ scale 0.391 -> 551x732
-#   spell  : native 1335x1670 @ scale 0.391 -> 522x653
-#   amulet : native 1410x1874 @ scale 0.373 -> 526x699
-FRAME_SIZE = {
-    "unit": (552, 732),
-    "spell": (522, 653),
-    "amulet": (526, 699),
-}
 # CardDetail TextureRect 2648x1843 @ scale 0.4
 DETAIL_BG_SIZE = (1059, 737)
 # detail_spit 2423x3 @ scale 0.4 * 1.03
@@ -36,8 +24,6 @@ SPLIT_SIZE = (999, 2)
 TITLE_BG_SIZE = (1920, 1080)
 # title_bottom 1200x697 @ 1.6
 TITLE_BOTTOM_SIZE = (1920, 1115)
-# cost/ap cover stretched over the whole card (552x733)
-COVER_SIZE = FRAME_SIZE["unit"]
 # Backgrounds cover-fit 1920x1080
 BG_SIZE = (1920, 1080)
 # Built-in crest icons (incl. the default luna crest)
@@ -46,13 +32,6 @@ CREST_SIZE = (64, 64)
 
 def main():
     out = []
-    # --- frames ---
-    for kind in KINDS:
-        for rare in RARES:
-            src = f"{SRC}/img/edging/{kind}_{rare}.png"
-            dst = f"{DST}/frames/{kind}_{rare}.png"
-            out.append((src, dst, FRAME_SIZE[kind], Image.LANCZOS, "PNG"))
-
     # --- class backgrounds (jpg) ---
     for cls in CLASSES:
         for gen in (1, 2):
@@ -60,12 +39,10 @@ def main():
             dst = f"{DST}/backgrounds/{cls}-{gen}.jpg"
             out.append((src, dst, BG_SIZE, Image.LANCZOS, "JPEG"))
 
-    # --- title class icons / class jewels (keep native) ---
+    # --- title class icons (keep native) ---
     for cls in CLASSES:
         out.append((f"{SRC}/img/title_class/{cls}.png",
                     f"{DST}/title_class/{cls}.png", None, None, "PNG"))
-        out.append((f"{SRC}/img/class/{cls}.png",
-                    f"{DST}/class/{cls}.png", None, None, "PNG"))
 
     # --- effect images ---
     out += [
@@ -77,10 +54,6 @@ def main():
          f"{DST}/effect/card_detail_background.png", DETAIL_BG_SIZE, Image.LANCZOS, "PNG"),
         (f"{SRC}/img/effect/detail_spit.png", f"{DST}/effect/detail_spit.png",
          SPLIT_SIZE, Image.LANCZOS, "PNG"),
-        (f"{SRC}/img/effect/cost_cover.png", f"{DST}/effect/cost_cover.png",
-         COVER_SIZE, Image.LANCZOS, "PNG"),
-        (f"{SRC}/img/effect/ap_cover.png", f"{DST}/effect/ap_cover.png",
-         COVER_SIZE, Image.LANCZOS, "PNG"),
         # Section banners: stretched to the text block at runtime; keep native.
         (f"{SRC}/img/effect/evolve.png", f"{DST}/effect/evolve.png", None, None, "PNG"),
         (f"{SRC}/img/effect/super_evolve.png", f"{DST}/effect/super_evolve.png", None, None, "PNG"),

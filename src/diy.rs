@@ -1,40 +1,25 @@
-//! BYD-DIY (欧丝的印卡机) style renderer.
+//! 效果图 (BYD-DIY style product image) renderer.
 //!
-//! Produces the 1920x1080 product image: title band on top, the card on the
-//! left and the description panel on the right. Layout constants are ported
-//! from sv-byd-diy's `ui/main.tscn` / `ui/card_panel.gd` (scales folded in).
+//! Produces the 1920x1080 product image: title band on top, the official WB
+//! card (rendered by the same pipeline as the 单卡图 mode) on the left and the
+//! description panel on the right. Title band and description panel layout
+//! constants are ported from sv-byd-diy's `ui/main.tscn` / `ui/card_panel.gd`.
 
 use ab_glyph::ScaleFont;
-use crate::card::{CardConfig, KIND_FOLLOWER};
-use crate::render::{blit_crop, blit_cover, fill_rect};
+use crate::card::CardConfig;
+use crate::render::{fill_rect, blit_cover};
 use crate::text::TextEngine;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 
 pub const DIY_W: u32 = 1920;
 pub const DIY_H: u32 = 1080;
 
-// ---- card block ----
-const CARD_X: f32 = 132.0;
-const CARD_Y: f32 = 211.0;
-const ART_X: f32 = 183.0;
-const ART_Y: f32 = 331.0;
-const ART_W: f32 = 464.0;
-const ART_H: f32 = 560.0;
-// card-name label center (anchors 0.516304/0.133697 of the 552x733 card)
-const NAME_CX: f32 = 417.0;
-const NAME_CY: f32 = 309.0;
-const NAME_SIZE: f32 = 45.0;
-const NUM_SIZE: f32 = 110.0;
-const COST_CX: f32 = 197.0;
-const COST_CY: f32 = 309.5;
-const ATK_CX: f32 = 202.0;
-const ATK_CY: f32 = 875.0;
-const HP_CX: f32 = 629.0;
-const HP_CY: f32 = 875.0;
-const JEWEL_X: f32 = 399.0;
-const JEWEL_Y: f32 = 850.0;
-const JEWEL_W: f32 = 34.1;
-const JEWEL_H: f32 = 37.4;
+// ---- card block (official WB card, reused from the 单卡图 pipeline) ----
+/// The official card is rendered via `crate::render::render` at this scale and
+/// blitted here. 0.75 => 587x768 on the 1920x1080 canvas.
+const CARD_SCALE: f32 = 0.75;
+const CARD_POS_X: f32 = 132.0;
+const CARD_POS_Y: f32 = 211.0;
 
 // ---- title band ----
 const TITLE_NAME_X: f32 = 172.0;
@@ -97,15 +82,6 @@ const DIY_CLASSES: [&str; 8] = [
     "havencraft",
     "portalcraft",
 ];
-// wbm kind (1 follower / 2 amulet / 3 spell) -> sv-byd-diy kind name
-fn diy_kind(kind: u8) -> &'static str {
-    match kind {
-        2 => "amulet",
-        3 => "spell",
-        _ => "unit",
-    }
-}
-const DIY_RARES: [&str; 5] = ["brone", "silver", "gold", "legend", "peculiar"];
 const CREST_BORDERS: [&str; 4] = ["Crest", "Faith", "Accelerate", "Crystallize"];
 /// Built-in crest icons, index 0 = default (luna), then cost_0..cost_10, then 2 extra.
 pub const CREST_BUILTIN: [&str; 14] = [
@@ -126,34 +102,6 @@ pub const CREST_BUILTIN: [&str; 14] = [
 ];
 
 // ---- embedded assets ----
-
-macro_rules! frame_key {
-    ($kind:literal, $rare:literal) => {
-        concat!("../assets/diy/frames/", $kind, "_", $rare, ".png")
-    };
-}
-
-pub fn diy_frame_bytes(kind: &str, rare: &str) -> Option<&'static [u8]> {
-    let bytes = match (kind, rare) {
-        ("unit", "brone") => include_bytes!(frame_key!("unit", "brone")) as &[u8],
-        ("unit", "silver") => include_bytes!(frame_key!("unit", "silver")) as &[u8],
-        ("unit", "gold") => include_bytes!(frame_key!("unit", "gold")) as &[u8],
-        ("unit", "legend") => include_bytes!(frame_key!("unit", "legend")) as &[u8],
-        ("unit", "peculiar") => include_bytes!(frame_key!("unit", "peculiar")) as &[u8],
-        ("spell", "brone") => include_bytes!(frame_key!("spell", "brone")) as &[u8],
-        ("spell", "silver") => include_bytes!(frame_key!("spell", "silver")) as &[u8],
-        ("spell", "gold") => include_bytes!(frame_key!("spell", "gold")) as &[u8],
-        ("spell", "legend") => include_bytes!(frame_key!("spell", "legend")) as &[u8],
-        ("spell", "peculiar") => include_bytes!(frame_key!("spell", "peculiar")) as &[u8],
-        ("amulet", "brone") => include_bytes!(frame_key!("amulet", "brone")) as &[u8],
-        ("amulet", "silver") => include_bytes!(frame_key!("amulet", "silver")) as &[u8],
-        ("amulet", "gold") => include_bytes!(frame_key!("amulet", "gold")) as &[u8],
-        ("amulet", "legend") => include_bytes!(frame_key!("amulet", "legend")) as &[u8],
-        ("amulet", "peculiar") => include_bytes!(frame_key!("amulet", "peculiar")) as &[u8],
-        _ => return None,
-    };
-    Some(bytes)
-}
 
 pub fn diy_background_bytes(cls: &str, gen: u8) -> Option<&'static [u8]> {
     let bytes = match (cls, gen) {
@@ -193,21 +141,6 @@ pub fn diy_title_class_bytes(cls: &str) -> Option<&'static [u8]> {
     Some(bytes)
 }
 
-pub fn diy_jewel_bytes(cls: &str) -> Option<&'static [u8]> {
-    let bytes = match cls {
-        "neutral" => include_bytes!("../assets/diy/class/neutral.png") as &[u8],
-        "forestcraft" => include_bytes!("../assets/diy/class/forestcraft.png") as &[u8],
-        "swordcraft" => include_bytes!("../assets/diy/class/swordcraft.png") as &[u8],
-        "runecraft" => include_bytes!("../assets/diy/class/runecraft.png") as &[u8],
-        "dragoncraft" => include_bytes!("../assets/diy/class/dragoncraft.png") as &[u8],
-        "abysscraft" => include_bytes!("../assets/diy/class/abysscraft.png") as &[u8],
-        "havencraft" => include_bytes!("../assets/diy/class/havencraft.png") as &[u8],
-        "portalcraft" => include_bytes!("../assets/diy/class/portalcraft.png") as &[u8],
-        _ => return None,
-    };
-    Some(bytes)
-}
-
 pub fn diy_effect_bytes(key: &str) -> Option<&'static [u8]> {
     let bytes = match key {
         "title_bg" => include_bytes!("../assets/diy/effect/title_bg.png") as &[u8],
@@ -216,8 +149,6 @@ pub fn diy_effect_bytes(key: &str) -> Option<&'static [u8]> {
             include_bytes!("../assets/diy/effect/card_detail_background.png") as &[u8]
         }
         "detail_spit" => include_bytes!("../assets/diy/effect/detail_spit.png") as &[u8],
-        "cost_cover" => include_bytes!("../assets/diy/effect/cost_cover.png") as &[u8],
-        "ap_cover" => include_bytes!("../assets/diy/effect/ap_cover.png") as &[u8],
         "evolve" => include_bytes!("../assets/diy/effect/evolve.png") as &[u8],
         "super_evolve" => include_bytes!("../assets/diy/effect/super_evolve.png") as &[u8],
         "detail_crest" => include_bytes!("../assets/diy/effect/detail_crest.png") as &[u8],
@@ -270,28 +201,12 @@ fn blit_stretch(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f
     if dw == 0 || dh == 0 {
         return;
     }
-    let resized = image::imageops::resize(
-        src,
-        dw,
-        dh,
-        image::imageops::FilterType::Lanczos3,
-    );
+    let resized = image::imageops::resize(src, dw, dh, image::imageops::FilterType::Lanczos3);
     image::imageops::overlay(canvas, &resized, dx.round() as i64, dy.round() as i64);
 }
 
-fn frame_off(kind: &str) -> (f32, f32) {
-    match kind {
-        "spell" => (0.0, 12.9),
-        "amulet" => (0.0, 2.2),
-        _ => (0.0, 0.0),
-    }
-}
-
 /// Resolve the crest icon image: user upload wins, then builtin index.
-fn resolve_crest(
-    spec: &str,
-    upload: Option<&[u8]>,
-) -> Result<Option<RgbaImage>, String> {
+fn resolve_crest(spec: &str, upload: Option<&[u8]>) -> Result<Option<RgbaImage>, String> {
     if spec == "upload" {
         if let Some(bytes) = upload {
             return decode(bytes, "crest icon").map(Some);
@@ -326,12 +241,6 @@ pub fn render_diy(
         .get(config.class as usize)
         .copied()
         .ok_or_else(|| format!("bad class index {}", config.class))?;
-    let kind = diy_kind(config.kind);
-    let rare = DIY_RARES
-        .get((config.rarity.saturating_sub(1)) as usize)
-        .copied()
-        .ok_or_else(|| format!("bad rarity index {}", config.rarity))?;
-    let is_unit = config.kind == KIND_FOLLOWER;
     let bg_gen = if config.bg_type == 1 { 1 } else { 2 };
 
     // 1. class background (cover-fit, full canvas)
@@ -347,89 +256,20 @@ pub fn render_diy(
         blit_stretch(&mut canvas, &bottom, 0.0, -4.8, 1920.0, 1115.2);
     }
 
-    // 3. card art (crop or cover into the art window)
-    if let Some(bytes) = art_bytes {
-        let art = decode(bytes, "art")?;
-        match &config.crop {
-            Some(crop) => blit_crop(&mut canvas, &art, ART_X, ART_Y, ART_W, ART_H, crop),
-            None => blit_cover(&mut canvas, &art, ART_X, ART_Y, ART_W, ART_H),
-        }
-    } else {
-        fill_rect(&mut canvas, ART_X, ART_Y, ART_W, ART_H, [42, 42, 46, 255]);
-    }
+    // 3. the card: fully reuse the official WB card pipeline (单卡图).
+    let mut wb_config = config.clone();
+    wb_config.scale = CARD_SCALE;
+    let card_png = crate::render::render(&wb_config, art_bytes)?;
+    let card_img = decode(&card_png, "card render")?;
+    image::imageops::overlay(
+        &mut canvas,
+        &card_img,
+        CARD_POS_X.round() as i64,
+        CARD_POS_Y.round() as i64,
+    );
 
-    // 4. frame + gem covers + class jewel
-    let frame_bytes = diy_frame_bytes(kind, rare).ok_or("missing frame asset")?;
-    let frame = decode(frame_bytes, "frame")?;
-    let (fx, fy) = frame_off(kind);
-    image::imageops::overlay(&mut canvas, &frame, (CARD_X + fx).round() as i64, (CARD_Y + fy).round() as i64);
-    if is_unit {
-        let cost_cover = decode(diy_effect_bytes("cost_cover").unwrap(), "cost_cover")?;
-        blit_stretch(&mut canvas, &cost_cover, CARD_X, CARD_Y, 552.0, 733.0);
-        let ap_cover = decode(diy_effect_bytes("ap_cover").unwrap(), "ap_cover")?;
-        blit_stretch(&mut canvas, &ap_cover, CARD_X, CARD_Y, 552.0, 733.0);
-    }
-    if let Some(jb) = diy_jewel_bytes(cls) {
-        let jewel = decode(jb, "class jewel")?;
-        blit_stretch(&mut canvas, &jewel, JEWEL_X, JEWEL_Y, JEWEL_W, JEWEL_H);
-    }
-
-    // 5. fonts
+    // 4. title band texts
     let engine = TextEngine::for_language(&config.language)?;
-
-    // 6. card name (white, no shadow) and numbers (colored glow + white core)
-    if !config.name.is_empty() {
-        engine.draw_label(
-            &mut canvas,
-            &engine.title,
-            &config.name,
-            NAME_CX,
-            NAME_CY,
-            NAME_SIZE + config.name_size_offset,
-            900.0,
-            0.0,
-        );
-    }
-    if !config.cost.is_empty() {
-        engine.draw_number_glow(
-            &mut canvas,
-            &config.cost,
-            COST_CX,
-            COST_CY,
-            NUM_SIZE,
-            150.0,
-            [0, 57, 0, 255],
-            0.33,
-        );
-    }
-    if is_unit {
-        if !config.atk.is_empty() {
-            engine.draw_number_glow(
-                &mut canvas,
-                &config.atk,
-                ATK_CX,
-                ATK_CY,
-                NUM_SIZE,
-                240.0,
-                [0, 29, 0, 255],
-                0.77,
-            );
-        }
-        if !config.life.is_empty() {
-            engine.draw_number_glow(
-                &mut canvas,
-                &config.life,
-                HP_CX,
-                HP_CY,
-                NUM_SIZE,
-                240.0,
-                [9, 56, 115, 255],
-                0.44,
-            );
-        }
-    }
-
-    // 7. title band texts (drawn over the card)
     let title_name: String = config.name.chars().filter(|c| *c != ' ').collect();
     if !title_name.is_empty() {
         engine.draw_plain(
@@ -492,7 +332,7 @@ pub fn render_diy(
         0.0,
     );
 
-    // 8. description panel
+    // 5. description panel
     fill_rect(
         &mut canvas,
         DETAIL_X,
@@ -506,7 +346,9 @@ pub fn render_diy(
         "card_detail_background",
     )?;
     blit_stretch(&mut canvas, &detail_bg, DETAIL_X, DETAIL_Y, DETAIL_W, DETAIL_H);
-    let spit_img = diy_effect_bytes("detail_spit").map(|b| decode(b, "detail_spit")).transpose()?;
+    let spit_img = diy_effect_bytes("detail_spit")
+        .map(|b| decode(b, "detail_spit"))
+        .transpose()?;
 
     let mut y = VB_Y;
     let text_x = VB_X + TEXT_INSET;
@@ -658,7 +500,7 @@ pub fn render_diy(
         }
     }
 
-    // 9. signature rows
+    // 6. signature rows
     if config.show_illustrator {
         engine.draw_plain(
             &mut canvas,
@@ -762,12 +604,7 @@ fn measure_rich(engine: &TextEngine, text: &str, max_w: f32, size: f32) -> f32 {
             cur_w += w + sf.h_advance(sf.glyph_id(' '));
         }
     }
-    let text_h = if text.trim().is_empty() {
-        0.0
-    } else {
-        lines as f32 * line_h
-    };
-    text_h
+    lines as f32 * line_h
 }
 
 fn draw_split(
@@ -821,37 +658,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn class_and_kind_mapping() {
+    fn class_mapping() {
         assert_eq!(DIY_CLASSES[0], "neutral");
         assert_eq!(DIY_CLASSES[7], "portalcraft");
         assert_eq!(DIY_CLASSES[5], "abysscraft");
-        assert_eq!(diy_kind(1), "unit");
-        assert_eq!(diy_kind(2), "amulet");
-        assert_eq!(diy_kind(3), "spell");
-        assert_eq!(DIY_RARES[4], "peculiar");
     }
 
     #[test]
     fn all_diy_assets_exist() {
-        for kind in ["unit", "spell", "amulet"] {
-            for rare in DIY_RARES {
-                assert!(diy_frame_bytes(kind, rare).is_some(), "{kind}_{rare}");
-            }
-        }
         for cls in DIY_CLASSES {
             for gen in 1..=2 {
                 assert!(diy_background_bytes(cls, gen).is_some(), "{cls}-{gen}");
             }
             assert!(diy_title_class_bytes(cls).is_some(), "title_class {cls}");
-            assert!(diy_jewel_bytes(cls).is_some(), "jewel {cls}");
         }
         for key in [
             "title_bg",
             "title_bottom",
             "card_detail_background",
             "detail_spit",
-            "cost_cover",
-            "ap_cover",
             "evolve",
             "super_evolve",
             "detail_crest",
@@ -865,5 +690,36 @@ mod tests {
         for name in CREST_BUILTIN {
             assert!(diy_crest_bytes(name).is_some(), "crest {name}");
         }
+    }
+
+    #[test]
+    fn render_diy_smoke() {
+        // Register a minimal font set (native test only, reads repo assets).
+        let fonts_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts");
+        let kaimin = std::fs::read(format!("{fonts_dir}/MOC-KaiminTsuki-B.otf")).unwrap();
+        crate::text::register_font("title_chs", &kaimin);
+        crate::text::register_font("number", &kaimin);
+        let cfg = CardConfig {
+            name: "测试随从".into(),
+            language: "chs".into(),
+            class: 4,
+            kind: 1,
+            rarity: 4,
+            frame: "follower_legend".into(),
+            cost: "7".into(),
+            atk: "5".into(),
+            life: "6".into(),
+            detail1: "【守护】\n【入场曲】抽取1张卡牌。".into(),
+            show_crest: true,
+            crest: "纹章 1".into(),
+            crest_name: "试制纹章".into(),
+            show_diy: true,
+            diy: "DIY：某人".into(),
+            ..Default::default()
+        };
+        let out = render_diy(&cfg, None, None, None).expect("render diy");
+        assert!(out.len() > 1000);
+        let img = image::load_from_memory(&out).expect("decode");
+        assert_eq!((img.width(), img.height()), (1920, 1080));
     }
 }

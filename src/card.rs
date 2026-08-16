@@ -92,7 +92,6 @@ pub struct CardConfig {
     pub class_text: String,   // localized class name (title band)
     pub crest_border: u8,     // 0 纹章 / 1 信仰 / 2 激奏 / 3 结晶
     pub crest_scale: f32,     // crest banner scale, 0.1..=1.5, default 1.0
-    pub name_size_offset: f32,// added to the DIY card-name size (45)
     pub d1_size: f32,         // 正文 font size (px), default 32.4
     pub d2_size: f32,
     pub ev_size: f32,
@@ -151,7 +150,6 @@ impl Default for CardConfig {
             class_text: String::new(),
             crest_border: 0,
             crest_scale: 1.0,
-            name_size_offset: 0.0,
             d1_size: 32.4,
             d2_size: 32.4,
             ev_size: 32.4,
