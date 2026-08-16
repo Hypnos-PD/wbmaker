@@ -63,13 +63,14 @@ const CREST_ICON_SIDE: f32 = 59.2; // ~148 @0.4
 const CREST_TEXT_GAP: f32 = 4.0;
 const CREST_BOTTOM: f32 = 12.0; // texture margin 30 @0.4
 // signature rows (fixed on the detail panel)
-const ILLU_TITLE_RIGHT: f32 = 918.6; // 730 + 471.5*0.4（Godot 右对齐）
+const ILLU_TITLE_RIGHT: f32 = 894.6; // 画师行整体左移后的右对齐锚点
 const ILLU_TITLE_Y: f32 = 874.6;
-const ILLU_X: f32 = 923.4;
+const ILLU_X: f32 = 899.4;
+const ILLU_SIZE: f32 = 34.0; // 画师行字号（比正文 32.4 略大）
 const DIY_X: f32 = 732.0;
-const DIY_Y: f32 = 960.2;
+const DIY_Y: f32 = 966.0; // 下移
 const DIY_RIGHT: f32 = 1788.8;
-const DIY_SIZE: f32 = 30.0; // 75 @0.4
+const DIY_SIZE: f32 = 34.0;
 const SPLIT_ALPHA: f32 = 0.5; // 分隔线透明度
 
 // wbm class (0=neutral..7=portal) -> sv-byd-diy asset name
@@ -534,15 +535,15 @@ pub fn render_diy(
         // 画师行：Noto Sans CJK 对应语言版本（粗体），缺失时回退标题字体
         let illus_font = crate::text::font_by_key(&format!("illus_{}", config.language))
             .unwrap_or_else(|| engine.title.clone());
-        let label = if config.illus_title.is_empty() { "画师：" } else { &config.illus_title };
-        let (lw, _) = engine.measure(&illus_font, label, DEFAULT_TEXT_SIZE);
+        let label = if config.illus_title.is_empty() { "画师:" } else { &config.illus_title };
+        let (lw, _) = engine.measure(&illus_font, label, ILLU_SIZE);
         engine.draw_plain(
             &mut canvas,
             &illus_font,
             label,
             ILLU_TITLE_RIGHT - lw,
             ILLU_TITLE_Y,
-            DEFAULT_TEXT_SIZE,
+            ILLU_SIZE,
             crate::text::BODY,
             0.0,
         );
@@ -552,7 +553,7 @@ pub fn render_diy(
             &config.illustrator,
             ILLU_X,
             ILLU_TITLE_Y,
-            DEFAULT_TEXT_SIZE,
+            ILLU_SIZE,
             crate::text::BODY,
             0.0,
         );
@@ -561,11 +562,13 @@ pub fn render_diy(
         // 脚注：Noto Sans CJK 对应语言版本（常规），缺失时回退标题字体
         let footnote_font = crate::text::font_by_key(&format!("footnote_{}", config.language))
             .unwrap_or_else(|| engine.title.clone());
-        let (w, _) = engine.measure(&footnote_font, &config.diy, DIY_SIZE);
+        // ※ 是必定前缀，不依赖用户填写
+        let footnote_text = format!("※{}", config.diy);
+        let (w, _) = engine.measure(&footnote_font, &footnote_text, DIY_SIZE);
         engine.draw_plain(
             &mut canvas,
             &footnote_font,
-            &config.diy,
+            &footnote_text,
             (DIY_RIGHT - w).max(DIY_X),
             DIY_Y,
             DIY_SIZE,
