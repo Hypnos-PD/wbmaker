@@ -501,7 +501,6 @@ impl TextEngine {
         let runs = parse_rich(text);
         let sf = Self::scaled(font, size);
         let line_h = sf.height() + line_gap;
-        let space_w = sf.h_advance(sf.glyph_id(' '));
         let mut cursor_y = y;
 
         // Tokenize into items: (text, color, italic, is_split, is_newline).
@@ -520,6 +519,10 @@ impl TextEngine {
                     j += 1;
                     continue;
                 }
+                if ch == ' ' {
+                    j += 1; // 行首/多余空格跳过（词间空格随单词携带）
+                    continue;
+                }
                 let start = j;
                 let stop = if ch.is_ascii() {
                     j += 1;
@@ -536,9 +539,10 @@ impl TextEngine {
                     j
                 };
                 let mut word = run.text[start..stop].to_string();
-                // keep one trailing space (if present) as part of the word
+                // 拉丁词携带一个尾随空格（若存在）并消费它，避免重复/丢空格
                 if stop < run.text.len() && run.text[stop..].starts_with(' ') {
                     word.push(' ');
+                    j = stop + 1;
                 }
                 items.push((word, run.color, run.italic, false, false));
             }
@@ -607,12 +611,6 @@ impl TextEngine {
                 if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
                     cursor_y += line_h;
                 }
-            }
-            if !cur.is_empty() {
-                if let Some(last) = cur.last_mut() {
-                    last.text.push(' ');
-                }
-                cur_w += space_w;
             }
             if let Some(last) = cur.last_mut() {
                 if last.color == color && last.italic == italic {

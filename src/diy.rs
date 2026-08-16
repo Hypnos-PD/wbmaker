@@ -63,13 +63,14 @@ const CREST_ICON_SIDE: f32 = 59.2; // ~148 @0.4
 const CREST_TEXT_GAP: f32 = 4.0;
 const CREST_BOTTOM: f32 = 12.0; // texture margin 30 @0.4
 // signature rows (fixed on the detail panel)
-const ILLU_TITLE_X: f32 = 735.8;
+const ILLU_TITLE_RIGHT: f32 = 918.6; // 730 + 471.5*0.4（Godot 右对齐）
 const ILLU_TITLE_Y: f32 = 874.6;
 const ILLU_X: f32 = 923.4;
 const DIY_X: f32 = 732.0;
 const DIY_Y: f32 = 960.2;
 const DIY_RIGHT: f32 = 1788.8;
 const DIY_SIZE: f32 = 30.0; // 75 @0.4
+const SPLIT_ALPHA: f32 = 0.5; // 分隔线透明度
 
 // wbm class (0=neutral..7=portal) -> sv-byd-diy asset name
 const DIY_CLASSES: [&str; 8] = [
@@ -344,9 +345,17 @@ pub fn render_diy(
         "card_detail_background",
     )?;
     blit_stretch(&mut canvas, &detail_bg, DETAIL_X, DETAIL_Y, DETAIL_W, DETAIL_H);
-    let spit_img = diy_effect_bytes("detail_spit")
-        .map(|b| decode(b, "detail_spit"))
-        .transpose()?;
+    // 分割线贴图为不透明白线，按 SPLIT_ALPHA 降透明度后再绘制
+    let spit_img: Option<RgbaImage> = match diy_effect_bytes("detail_spit") {
+        Some(b) => {
+            let mut im = decode(b, "detail_spit")?;
+            for p in im.pixels_mut() {
+                p[3] = ((p[3] as f32 * SPLIT_ALPHA).round() as u8).min(p[3]);
+            }
+            Some(im)
+        }
+        None => None,
+    };
 
     let mut y = VB_Y;
     let text_x = VB_X + TEXT_INSET;
@@ -499,15 +508,17 @@ pub fn render_diy(
     }
 
     // 6. signature rows
-    if config.show_illustrator {
+    if config.show_illustrator && !config.illustrator.trim().is_empty() {
+        let label = if config.illus_title.is_empty() { "画师：" } else { &config.illus_title };
+        let (lw, _) = engine.measure(&engine.title, label, DEFAULT_TEXT_SIZE);
         engine.draw_plain(
             &mut canvas,
             &engine.title,
-            "Illus. ",
-            ILLU_TITLE_X,
+            label,
+            ILLU_TITLE_RIGHT - lw,
             ILLU_TITLE_Y,
             DEFAULT_TEXT_SIZE,
-            TITLE_GOLD,
+            crate::text::BODY,
             0.0,
         );
         engine.draw_plain(
@@ -569,6 +580,10 @@ fn measure_rich(engine: &TextEngine, text: &str, max_w: f32, size: f32) -> f32 {
                 j += 1;
                 continue;
             }
+            if ch == ' ' {
+                j += 1;
+                continue;
+            }
             let start = j;
             let stop = if ch.is_ascii() {
                 j += 1;
@@ -584,6 +599,7 @@ fn measure_rich(engine: &TextEngine, text: &str, max_w: f32, size: f32) -> f32 {
                 j += ch.len_utf8();
                 j
             };
+            let has_trail = stop < run.text.len() && run.text[stop..].starts_with(' ');
             let word: String = run.text[start..stop].chars().collect();
             let mut w = 0.0f32;
             let mut prev: Option<ab_glyph::GlyphId> = None;
@@ -595,11 +611,14 @@ fn measure_rich(engine: &TextEngine, text: &str, max_w: f32, size: f32) -> f32 {
                 w += sf.h_advance(gid);
                 prev = Some(gid);
             }
+            if has_trail {
+                w += sf.h_advance(sf.glyph_id(' '));
+            }
             if cur_w + w > max_w && cur_w > 0.0 {
                 lines += 1;
                 cur_w = 0.0;
             }
-            cur_w += w + sf.h_advance(sf.glyph_id(' '));
+            cur_w += w;
         }
     }
     lines as f32 * line_h

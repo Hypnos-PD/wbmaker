@@ -90,6 +90,7 @@ pub struct CardConfig {
     pub class_title: String,  // localized "职业" label (title band)
     pub type_title: String,   // localized "类型" label (title band)
     pub class_text: String,   // localized class name (title band)
+    pub illus_title: String,  // localized "画师：" label (signature row)
     pub crest_border: u8,     // 0 纹章 / 1 信仰 / 2 激奏 / 3 结晶
     pub crest_scale: f32,     // crest banner scale, 0.1..=1.5, default 1.0
     pub d1_size: f32,         // 正文 font size (px), default 32.4
@@ -148,6 +149,7 @@ impl Default for CardConfig {
             class_title: String::from("职业"),
             type_title: String::from("类型"),
             class_text: String::new(),
+            illus_title: String::from("画师："),
             crest_border: 0,
             crest_scale: 1.0,
             d1_size: 32.4,
