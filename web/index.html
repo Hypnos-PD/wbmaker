@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WB 制卡器 · wbmaker</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23a8c900'/%3E%3Ctext x='8' y='12' font-size='10' text-anchor='middle' font-family='sans-serif'%3EWB%3C/text%3E%3C/svg%3E">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#a8c900">
   <link rel="stylesheet" href="topbar.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -15,6 +17,7 @@
       <a class="topbar-logo" href="/">WB <span data-i18n="brand">制卡器</span></a>
       <a class="top-action" href="/" data-i18n="backToWba">返回 WBA</a>
       <div class="topbar-spacer"></div>
+      <button class="top-action" id="btnInstall" type="button" data-i18n="installApp" hidden>📲 安装为应用</button>
       <div class="style-toggle" role="group" aria-label="card style">
         <button class="style-btn active" id="btnStyleWb" type="button" data-i18n="styleWb">单卡图</button>
         <button class="style-btn" id="btnStyleDiy" type="button" data-i18n="styleDiy">效果图</button>

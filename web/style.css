@@ -438,6 +438,7 @@ label.file.small {
   padding: 2px;
 }
 .crest-grid.pick {
+  width: min(560px, 85vw);
   grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
   max-height: 46vh;
   overflow-y: auto;

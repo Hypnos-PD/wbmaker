@@ -119,7 +119,7 @@ const UI = {
     crestName: "纹章名称", crestBorder: "纹章边框", crestScale: "名称区域缩放",
     crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
     illustrator: "画师", diyAuthor: "脚注", illusTitle: "画师:",
-    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", crestIconNone: "无", nameSize: "卡名字号",
+    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", crestIconNone: "无", installApp: "📲 安装为应用", installHint: "此浏览器不支持一键安装：请使用浏览器菜单中的「添加到主屏幕/安装应用」。", nameSize: "卡名字号",
     crestBorder0: "纹章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "结晶",
   },
   eng: {
@@ -141,7 +141,7 @@ const UI = {
     crestName: "Crest Name", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
     illustrator: "Illustrator", diyAuthor: "Footnote", illusTitle: "Illus by ",
-    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", nameSize: "Name size",
+    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", installApp: "📲 Install App", installHint: "One-click install is not supported here. Use your browser menu: Add to Home Screen / Install app.", nameSize: "Name size",
     crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
   jpn: {
@@ -163,7 +163,7 @@ const UI = {
     crestName: "紋章名", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
     crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
     illustrator: "イラストレーター", diyAuthor: "脚注", illusTitle: "イラスト:",
-    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ 紋章を追加", crestIconNone: "なし", nameSize: "カード名サイズ",
+    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ 紋章を追加", crestIconNone: "なし", installApp: "📲 アプリとしてインストール", installHint: "このブラウザではワンクリックインストールできません。ブラウザのメニューから「ホーム画面に追加 / アプリをインストール」を選んでください。", nameSize: "カード名サイズ",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
   kor: {
@@ -185,7 +185,7 @@ const UI = {
     crestName: "문장 이름", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
     crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
     illustrator: "일러스트레이터", diyAuthor: "각주", illusTitle: "일러스트: ",
-    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", crestIconNone: "없음", nameSize: "카드 이름 크기",
+    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", crestIconNone: "없음", installApp: "📲 앱으로 설치", installHint: "이 브라우저에서는 원클릭 설치를 지원하지 않습니다. 브라우저 메뉴에서 홈 화면에 추가 / 앱 설치를 선택하세요.", nameSize: "카드 이름 크기",
     crestBorder0: "문장", crestBorder1: "신앙", crestBorder2: "가속", crestBorder3: "결정",
   },
   cht: {
@@ -207,7 +207,7 @@ const UI = {
     crestName: "紋章名稱", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
     illustrator: "畫師", diyAuthor: "腳註", illusTitle: "畫師:",
-    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", crestIconNone: "無", nameSize: "卡名字號",
+    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", crestIconNone: "無", installApp: "📲 安裝為應用", installHint: "此瀏覽器不支援一鍵安裝：請使用瀏覽器選單中的「加入主畫面 / 安裝應用程式」。", nameSize: "卡名字號",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
 };
@@ -891,7 +891,7 @@ function addCrestBlock() {
   const div = document.createElement('div');
   div.className = 'crest-block';
   div.innerHTML = `
-    <div class="sub-head"><span>${t('crest')} ${n}</span>
+    <div class="sub-head"><span><input type="checkbox" data-c-enabled> ${t('crest')} ${n}</span>
       <button type="button" class="mini" data-crest-remove>×</button></div>
     <label class="crest-inline"><span>${t('crestName')}</span><input type="text" data-c-name></label>
     <label class="crest-inline"><span>${t('crestBorder')}</span>
@@ -967,6 +967,7 @@ function addCrestBlock() {
 function collectCrests() {
   const blocks = [];
   document.querySelectorAll('.crest-block').forEach((div) => {
+    if (!div.querySelector('[data-c-enabled]').checked) return; // 未勾选不渲染
     const name = div.querySelector('[data-c-name]').value;
     const text = div.querySelector('[data-c-text]').value;
     if (!name.trim() && !text.trim()) return; // 空块跳过
@@ -1024,6 +1025,27 @@ function bindDiyControls() {
 
 // ---- events ----
 
+// ---- PWA 安装（多端：支持 beforeinstallprompt 的直接安装，其余提示手动安装） ----
+let deferredInstallPrompt = null;
+
+function bindInstallButton() {
+  const btn = document.getElementById('btnInstall');
+  btn.hidden = false;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+  btn.addEventListener('click', async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+    } else {
+      alert(t('installHint'));
+    }
+  });
+}
+
 function bindEvents() {
   let debounceTimer = null;
   const scheduleRender = () => {
@@ -1055,6 +1077,7 @@ function bindEvents() {
     renderPreview();
   });
 
+  bindInstallButton();
   document.getElementById('btnAddCrest').addEventListener('click', () => {
     addCrestBlock();
     renderPreview();
