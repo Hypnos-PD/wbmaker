@@ -118,7 +118,7 @@ const UI = {
     crestDesc: "纹章描述", energy: "能量", crestBorder: "纹章边框", crestScale: "名称区域缩放",
     crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
     illustrator: "画师", diyAuthor: "脚注", illusTitle: "画师:",
-    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", crestIconNone: "无", installApp: "安装为应用", installHint: "请使用浏览器菜单中的「安装应用 / 添加到主屏幕」。", installHintIOS: "在 Safari 中点击分享按钮，选择「添加到主屏幕」。", installConfirm: "安装", later: "稍后", nameSize: "卡名字号",
+    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", crestIconNone: "无", nameSize: "卡名字号",
     crestBorder0: "纹章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "结晶",
   },
   eng: {
@@ -140,7 +140,7 @@ const UI = {
     crestDesc: "Crest description", energy: "Energy", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
     illustrator: "Illustrator", diyAuthor: "Footnote", illusTitle: "Illus by ",
-    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", installApp: "Install App", installHint: "Use your browser menu: Install app / Add to Home Screen.", installHintIOS: "In Safari, tap the Share button and choose \"Add to Home Screen\".", installConfirm: "Install", later: "Later", nameSize: "Name size",
+    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", installHint: "Use your browser menu: Install app / Add to Home Screen.", installHintIOS: "In Safari, tap the Share button and choose \"Add to Home Screen\".", installConfirm: "Install", later: "Later", nameSize: "Name size",
     crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
   jpn: {
@@ -162,7 +162,7 @@ const UI = {
     crestDesc: "クレストの説明", energy: "エネルギー", crestBorder: "クレスト枠", crestScale: "名称エリア拡大率",
     crestIcon1: "クレストアイコン 1", crestIcon2: "クレストアイコン 2", uploadCrest: "アップロード",
     illustrator: "イラストレーター", diyAuthor: "脚注", illusTitle: "イラスト:",
-    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ クレストを追加", crestIconNone: "なし", installApp: "アプリとしてインストール", installHint: "ブラウザのメニューから「アプリをインストール / ホーム画面に追加」を選んでください。", installHintIOS: "Safari で共有ボタンをタップし、「ホーム画面に追加」を選んでください。", installConfirm: "インストール", later: "あとで", nameSize: "カード名サイズ",
+    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ クレストを追加", crestIconNone: "なし", nameSize: "カード名サイズ",
     crestBorder0: "クレスト", crestBorder1: "信仰", crestBorder2: "アクセラレート", crestBorder3: "結晶",
   },
   kor: {
@@ -184,7 +184,7 @@ const UI = {
     crestDesc: "문장 설명", energy: "에너지", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
     crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
     illustrator: "일러스트레이터", diyAuthor: "각주", illusTitle: "일러스트: ",
-    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", crestIconNone: "없음", installApp: "앱으로 설치", installHint: "브라우저 메뉴에서 앱 설치 / 홈 화면에 추가를 선택하세요.", installHintIOS: "Safari에서 공유 버튼을 누르고 홈 화면에 추가를 선택하세요.", installConfirm: "설치", later: "나중에", nameSize: "카드 이름 크기",
+    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", crestIconNone: "없음", nameSize: "카드 이름 크기",
     crestBorder0: "문장", crestBorder1: "신앙", crestBorder2: "가속", crestBorder3: "결정",
   },
   cht: {
@@ -206,7 +206,7 @@ const UI = {
     crestDesc: "紋章描述", energy: "能量", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
     illustrator: "畫師", diyAuthor: "腳註", illusTitle: "畫師:",
-    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", crestIconNone: "無", installApp: "安裝為應用", installHint: "請使用瀏覽器選單中的「安裝應用程式 / 加入主畫面」。", installHintIOS: "在 Safari 中點擊分享按鈕，選擇「加入主畫面」。", installConfirm: "安裝", later: "稍後", nameSize: "卡名字號",
+    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", crestIconNone: "無", nameSize: "卡名字號",
     crestBorder0: "クレスト", crestBorder1: "信仰", crestBorder2: "アクセラレート", crestBorder3: "結晶",
   },
 };
@@ -1109,57 +1109,6 @@ function bindDiyControls() {
 
 // ---- events ----
 
-// ---- PWA 安装（参照 svwbmeta.com：独立模式/已安装时隐藏；点击弹提示层） ----
-let deferredInstallPrompt = null;
-let installedFlag = false;
-
-const INSTALL_DISPLAY_MODES = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'];
-function isStandalone() {
-  return navigator.standalone === true ||
-    INSTALL_DISPLAY_MODES.some((m) => window.matchMedia(`(display-mode: ${m})`).matches);
-}
-function isIOS() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
-
-function bindInstallButton() {
-  const btn = document.getElementById('btnInstall');
-  const modal = document.getElementById('installModal');
-  const refreshVisibility = () => { btn.hidden = installedFlag || isStandalone(); };
-  refreshVisibility();
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    refreshVisibility();
-  });
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
-    installedFlag = true;
-    refreshVisibility();
-  });
-  const close = () => { modal.hidden = true; };
-  btn.addEventListener('click', () => {
-    document.getElementById('installHintText').textContent =
-      t(isIOS() ? 'installHintIOS' : 'installHint');
-    modal.hidden = false;
-  });
-  document.getElementById('installConfirm').addEventListener('click', async () => {
-    if (deferredInstallPrompt) {
-      const p = deferredInstallPrompt;
-      deferredInstallPrompt = null;
-      await p.prompt();
-      await p.userChoice;
-    }
-    close();
-  });
-  document.getElementById('installLater').addEventListener('click', close);
-  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modal.hidden) close();
-  });
-}
-
 function bindEvents() {
   let debounceTimer = null;
   const scheduleRender = () => {
@@ -1191,7 +1140,6 @@ function bindEvents() {
     renderPreview();
   });
 
-  bindInstallButton();
   document.getElementById('btnAddCrest').addEventListener('click', () => {
     addCrestBlock();
     renderPreview();

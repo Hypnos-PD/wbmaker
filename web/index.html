@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WB 制卡器 · wbmaker</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23a8c900'/%3E%3Ctext x='8' y='12' font-size='9' text-anchor='middle' font-family='sans-serif' font-weight='bold'%3EWBM%3C/text%3E%3C/svg%3E">
-  <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#a8c900">
   <link rel="stylesheet" href="topbar.css">
   <link rel="stylesheet" href="style.css">
@@ -17,12 +16,6 @@
       <a class="topbar-logo" href="/">WB <span data-i18n="brand">制卡器</span></a>
       <a class="top-action" href="/" data-i18n="backToWba">返回 WBA</a>
       <div class="topbar-spacer"></div>
-      <button class="top-action" id="btnInstall" type="button" data-i18n-title="installApp" title="安装为应用" hidden>
-        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px">
-          <path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 19h16"/>
-        </svg>
-        <span data-i18n="installApp">安装为应用</span>
-      </button>
       <div class="style-toggle" role="group" aria-label="card style">
         <button class="style-btn active" id="btnStyleWb" type="button" data-i18n="styleWb">单卡图</button>
         <button class="style-btn" id="btnStyleDiy" type="button" data-i18n="styleDiy">效果图</button>
@@ -199,18 +192,6 @@
         <span class="crop-spacer"></span>
         <button id="cropCancel" class="btn" type="button" data-i18n="cropCancel">取消</button>
         <button id="cropConfirm" class="btn" type="button" data-i18n="cropConfirm">确认</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="installModal" class="crop-overlay" hidden>
-    <div class="crop-panel" style="max-width:420px">
-      <div class="crop-title" data-i18n="installApp">安装为应用</div>
-      <p id="installHintText" data-i18n="installHint">请使用浏览器菜单中的「安装应用 / 添加到主屏幕」。</p>
-      <div class="crop-actions">
-        <span class="crop-spacer"></span>
-        <button id="installLater" class="btn" type="button" data-i18n="later">稍后</button>
-        <button id="installConfirm" class="btn primary" type="button" data-i18n="installConfirm">安装</button>
       </div>
     </div>
   </div>
