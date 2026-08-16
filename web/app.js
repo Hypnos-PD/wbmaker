@@ -555,6 +555,7 @@ async function loadDefaultCard() {
   field('d1').value = DEFAULT_CARD.detail1[lang];
   field('diy').value = DEFAULT_CARD.footnote[lang];
   field('showDiy').checked = true;
+  autoResizeAllTextareas();
   updateKindUI();
   rebuildRarity();
 
@@ -675,6 +676,7 @@ function refreshDefaultTexts() {
       field(fieldName).value = DEFAULT_CARD[key][currentLang];
     }
   }
+  autoResizeAllTextareas();
 }
 
 function switchLang(lang) {
@@ -893,6 +895,23 @@ function insertAtCaret(textarea, tag, caretMode) {
   textarea.setSelectionRange(caret, caret);
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
+
+// ---- 文本框自动扩展高度（WBA 风格：占满栏宽、不可拖动、随内容增高） ----
+
+function autoResizeTextarea(el) {
+  if (!el || el.tagName !== 'TEXTAREA') return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function autoResizeAllTextareas() {
+  document.querySelectorAll('textarea').forEach(autoResizeTextarea);
+}
+
+// 事件委托：覆盖动态添加的纹章块
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.tagName === 'TEXTAREA') autoResizeTextarea(e.target);
+});
 
 // ---- 纹章块（动态添加/删除；图标用内置下拉 + 上传） ----
 

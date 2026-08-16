@@ -59,7 +59,27 @@ label > input[type=text], label > input[type=number], label > select, label > te
   font-weight: 700;
   box-shadow: 2px 2px 0 var(--border);
 }
-label > textarea { resize: vertical; line-height: 1.5; }
+/* 多行文本框（label 内与 .sub 段落块内统一 WBA 风格）：
+   占满栏宽、不可手动调整大小、随内容自动扩展高度 */
+label > textarea,
+.sub > textarea {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 700;
+  box-shadow: 2px 2px 0 var(--border);
+  resize: none;        /* 不可手动调整大小 */
+  overflow-y: hidden;  /* 随内容自动扩展高度（JS 同步 scrollHeight） */
+  line-height: 1.5;
+  min-height: 58px;
+}
 label > input:focus, label > select:focus, label > textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -391,6 +411,13 @@ label.file.small {
   box-shadow: 3px 3px 0 var(--border);
 }
 .crest-block .sub-head { margin-bottom: 8px; }
+.crest-block textarea {
+  width: 100%;
+  resize: none;
+  overflow-y: hidden;
+  line-height: 1.5;
+  min-height: 48px;
+}
 .crest-block textarea,
 .crest-block input[type=text],
 .crest-block select {
