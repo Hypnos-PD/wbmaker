@@ -59,6 +59,12 @@ label > input[type=text], label > input[type=number], label > select, label > te
   font-weight: 700;
   box-shadow: 2px 2px 0 var(--border);
 }
+/* 单行起步的文本框（画师/脚注）同样自动扩展，初始高度更小 */
+.sub > textarea.single {
+  min-height: 40px;
+  padding: 6px 10px;
+}
+
 /* 多行文本框（label 内与 .sub 段落块内统一 WBA 风格）：
    占满栏宽、不可手动调整大小、随内容自动扩展高度 */
 label > textarea,
