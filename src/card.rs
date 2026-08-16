@@ -121,8 +121,6 @@ pub struct CrestBlock {
     /// icon2 == "upload" 时对应的 PNG base64
     #[serde(default)]
     pub icon2_data: Option<String>,
-    #[serde(default)]
-    pub show_icon2: bool,
     #[serde(default = "default_crest_text_size")]
     pub size: f32,
 }

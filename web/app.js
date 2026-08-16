@@ -114,7 +114,7 @@ const UI = {
     styleWb: "单卡图", styleDiy: "效果图",
     diyPanel: "能力面板", trait: "兵种类型", traitTitle: "类型", bgAlpha: "正文底透明度",
     detail1: "正文", evolve: "进化", super: "超进化", crest: "纹章",
-    crestText: "纹章文字", crestDesc: "纹章描述", crestBorder: "纹章边框", crestScale: "名称区域缩放",
+    crestDesc: "纹章描述", energy: "能量", crestBorder: "纹章边框", crestScale: "名称区域缩放",
     crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
     illustrator: "画师", diyAuthor: "脚注", illusTitle: "画师:",
     keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", crestIconNone: "无", installApp: "📲 安装为应用", installHint: "此浏览器不支持一键安装：请使用浏览器菜单中的「添加到主屏幕/安装应用」。", nameSize: "卡名字号",
@@ -136,7 +136,7 @@ const UI = {
     styleWb: "Card Image", styleDiy: "Effect Image",
     diyPanel: "Ability Panel", trait: "Trait", traitTitle: "Type", bgAlpha: "Text Box Opacity",
     detail1: "Skill Text", evolve: "Evolve", super: "Super Evolve", crest: "Crest",
-    crestText: "Crest Text", crestDesc: "Crest description", crestBorder: "Crest Border", crestScale: "Name Area Scale",
+    crestDesc: "Crest description", energy: "Energy", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
     illustrator: "Illustrator", diyAuthor: "Footnote", illusTitle: "Illus by ",
     keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", installApp: "📲 Install App", installHint: "One-click install is not supported here. Use your browser menu: Add to Home Screen / Install app.", nameSize: "Name size",
@@ -158,7 +158,7 @@ const UI = {
     styleWb: "カード画像", styleDiy: "効果画像",
     diyPanel: "能力パネル", trait: "兵種タイプ", traitTitle: "タイプ", bgAlpha: "テキスト背景の透明度",
     detail1: "効果テキスト", evolve: "進化", super: "超進化", crest: "紋章",
-    crestText: "紋章テキスト", crestDesc: "紋章の説明", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
+    crestDesc: "紋章の説明", energy: "エネルギー", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
     crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
     illustrator: "イラストレーター", diyAuthor: "脚注", illusTitle: "イラスト:",
     keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ 紋章を追加", crestIconNone: "なし", installApp: "📲 アプリとしてインストール", installHint: "このブラウザではワンクリックインストールできません。ブラウザのメニューから「ホーム画面に追加 / アプリをインストール」を選んでください。", nameSize: "カード名サイズ",
@@ -180,7 +180,7 @@ const UI = {
     styleWb: "카드 이미지", styleDiy: "효과 이미지",
     diyPanel: "능력 패널", trait: "병종", traitTitle: "타입", bgAlpha: "텍스트 배경 투명도",
     detail1: "효과 텍스트", evolve: "진화", super: "초진화", crest: "문장",
-    crestText: "문장 텍스트", crestDesc: "문장 설명", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
+    crestDesc: "문장 설명", energy: "에너지", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
     crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
     illustrator: "일러스트레이터", diyAuthor: "각주", illusTitle: "일러스트: ",
     keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", crestIconNone: "없음", installApp: "📲 앱으로 설치", installHint: "이 브라우저에서는 원클릭 설치를 지원하지 않습니다. 브라우저 메뉴에서 홈 화면에 추가 / 앱 설치를 선택하세요.", nameSize: "카드 이름 크기",
@@ -202,7 +202,7 @@ const UI = {
     styleWb: "單卡圖", styleDiy: "效果圖",
     diyPanel: "能力面板", trait: "兵種類型", traitTitle: "類型", bgAlpha: "正文底透明度",
     detail1: "正文", evolve: "進化", super: "超進化", crest: "紋章",
-    crestText: "紋章文字", crestDesc: "紋章描述", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
+    crestDesc: "紋章描述", energy: "能量", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
     illustrator: "畫師", diyAuthor: "腳註", illusTitle: "畫師:",
     keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", crestIconNone: "無", installApp: "📲 安裝為應用", installHint: "此瀏覽器不支援一鍵安裝：請使用瀏覽器選單中的「加入主畫面 / 安裝應用程式」。", nameSize: "卡名字號",
@@ -837,10 +837,15 @@ function buildCrestPickGrid() {
     btn.dataset.spec = `builtin:${idx}`;
     const img = document.createElement('img');
     img.src = `crests/${name}.png`;
-    img.alt = String(idx);
     img.loading = 'lazy';
     btn.appendChild(img);
-    btn.title = `内置 ${idx}`;
+    // 0-10 能量、11 纹章、12 信仰
+    const label = idx <= 10
+      ? `${t('energy')}${idx}`
+      : (idx === 11 ? t('crestBorder0') : t('crestBorder1'));
+    btn.title = label;
+    btn.alt = label;
+    img.alt = label;
     btn.addEventListener('click', () => applyCrestPick(btn.dataset.spec));
     grid.appendChild(btn);
   });
@@ -904,24 +909,22 @@ function addCrestBlock() {
       <input type="range" data-c-scale min="0.1" max="1.5" step="0.1" value="1.0"></label>
     <label class="crest-inline"><span>${t('crestIcon1')}</span>
       <span class="slot-row">
-        <button type="button" class="crest-slot" data-crest-slot="icon1" data-spec="builtin:0">
-          <img src="crests/${builtinCrests[0] || ''}.png" alt="">
+        <button type="button" class="crest-slot" data-crest-slot="icon1" data-spec="builtin:11">
+          <img src="crests/${builtinCrests[11] || ''}.png" alt="">
           <span class="slot-tag"></span>
         </button>
         <button type="button" class="mini" data-crest-upload-btn="1">${t('uploadCrest')}</button>
       </span></label>
     <label class="crest-inline"><span>${t('crestIcon2')}</span>
       <span class="slot-row">
-        <button type="button" class="crest-slot" data-crest-slot="icon2" data-spec="builtin:0">
-          <img src="crests/${builtinCrests[0] || ''}.png" alt="">
-          <span class="slot-tag"></span>
+        <button type="button" class="crest-slot" data-crest-slot="icon2" data-spec="">
+          <img src="" alt="" style="visibility:hidden">
+          <span class="slot-tag">${t('crestIconNone')}</span>
         </button>
         <button type="button" class="mini" data-crest-upload-btn="2">${t('uploadCrest')}</button>
-      </span>
-      <input type="checkbox" data-c-show2 checked></label>
+      </span></label>
     <input type="file" accept="image/*" data-c-upload1 hidden>
     <input type="file" accept="image/*" data-c-upload2 hidden>
-    <label class="crest-inline"><span>${t('crestText')}</span><input type="text" data-c-text></label>
     <textarea data-c-desc rows="2" placeholder="${t('crestDesc')}"></textarea>
   `;
   list.appendChild(div);
@@ -974,9 +977,10 @@ function collectCrests() {
   const blocks = [];
   document.querySelectorAll('.crest-block').forEach((div) => {
     if (!div.querySelector('[data-c-enabled]').checked) return; // 未勾选不渲染
-    const text = div.querySelector('[data-c-text]').value;
+    const border = parseInt(div.querySelector('[data-c-border]').value, 10) || 0;
+    // 横带类型名：随边框类型与语言自动填入（如 激奏 / Accelerate）
+    const text = t('crestBorder' + border);
     const description = div.querySelector('[data-c-desc]').value;
-    if (!text.trim() && !description.trim()) return; // 空块跳过
     const slot1 = div.querySelector('[data-crest-slot="icon1"]');
     const slot2 = div.querySelector('[data-crest-slot="icon2"]');
     const store = crestUploads.get(div) || {};
@@ -992,13 +996,12 @@ function collectCrests() {
     blocks.push({
       text,
       description,
-      border: parseInt(div.querySelector('[data-c-border]').value, 10) || 0,
+      border,
       scale: parseFloat(div.querySelector('[data-c-scale]').value) || 1.0,
       icon1: i1.spec,
       icon1_data: i1.data,
       icon2: i2.spec,
       icon2_data: i2.data,
-      show_icon2: div.querySelector('[data-c-show2]').checked,
       size: DIY_SIZES.cre * 0.4,
     });
   });

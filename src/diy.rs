@@ -669,21 +669,20 @@ fn draw_crest_block(
         );
         ix += icon_side + 4.0;
     }
-    if block.show_icon2 {
-        let icon2 = resolve_crest(&block.icon2, block.icon2_data.as_deref())?;
-        if let Some(ic) = icon2 {
-            blit_stretch(
-                canvas,
-                &ic,
-                ix,
-                band_y + (band_h - icon_side) / 2.0,
-                icon_side,
-                icon_side,
-            );
-            ix += icon_side + 4.0;
-        }
+    let icon2 = resolve_crest(&block.icon2, block.icon2_data.as_deref())?;
+    if let Some(ic) = icon2 {
+        blit_stretch(
+            canvas,
+            &ic,
+            ix,
+            band_y + (band_h - icon_side) / 2.0,
+            icon_side,
+            icon_side,
+        );
+        ix += icon_side + 4.0;
     }
     if !block.text.trim().is_empty() {
+        // 类型名（随边框类型与语言由前端填入），黄色
         let text_size = block.size;
         engine.draw_plain_spacing(
             canvas,
@@ -692,7 +691,7 @@ fn draw_crest_block(
             ix + 8.0,
             band_y + (band_h - text_size) / 2.0,
             text_size,
-            crate::text::BODY,
+            crate::text::KEYWORD_YELLOW,
             0.0,
             CREST_BAND_SPACING,
         );
@@ -825,9 +824,8 @@ mod tests {
                 description: "纹章描述。".into(),
                 border: 0,
                 scale: 1.0,
-                icon1: "builtin:0".into(),
+                icon1: "builtin:11".into(),
                 icon2: "".into(),
-                show_icon2: false,
                 size: 32.4,
                 ..Default::default()
             }],
