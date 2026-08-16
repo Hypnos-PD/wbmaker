@@ -29,11 +29,11 @@ const TITLE_SIDE_SIZE: f32 = 28.0;
 const TITLE_GOLD: [u8; 4] = [213, 184, 137, 255];
 const TITLE_CLASS_TITLE_RIGHT: f32 = 1287.0;
 const TITLE_CLASS_TITLE_Y: f32 = 72.0;
-const TITLE_CLASS_CX: f32 = 1375.0;
+const TITLE_CLASS_X: f32 = 1347.0; // rect left (Godot: offset_left=1347)
 const TITLE_CLASS_Y: f32 = 74.0; // rect top (Godot: offset_top=74)
 const TITLE_TYPE_TITLE_RIGHT: f32 = 1288.0;
 const TITLE_TYPE_TITLE_Y: f32 = 120.0;
-const TITLE_TYPE_CX: f32 = 1322.0;
+const TITLE_TYPE_X: f32 = 1302.0; // rect left (Godot: offset_left=1302)
 const TITLE_TYPE_Y: f32 = 121.0; // rect top (Godot: offset_top=121)
 const TITLE_ICON_X: f32 = 1303.0;
 const TITLE_ICON_Y: f32 = 73.0;
@@ -298,12 +298,11 @@ pub fn render_diy(
         TITLE_GOLD,
         0.0,
     );
-    let (w, _) = engine.measure(&engine.title, &config.class_text, TITLE_SIDE_SIZE);
     engine.draw_plain(
         &mut canvas,
         &engine.title,
         &config.class_text,
-        TITLE_CLASS_CX - w / 2.0,
+        TITLE_CLASS_X,
         TITLE_CLASS_Y,
         TITLE_SIDE_SIZE,
         crate::text::BODY,
@@ -320,12 +319,11 @@ pub fn render_diy(
         TITLE_GOLD,
         0.0,
     );
-    let (w, _) = engine.measure(&engine.title, &config.trait_text, TITLE_SIDE_SIZE);
     engine.draw_plain(
         &mut canvas,
         &engine.title,
         &config.trait_text,
-        TITLE_TYPE_CX - w / 2.0,
+        TITLE_TYPE_X,
         TITLE_TYPE_Y,
         TITLE_SIDE_SIZE,
         crate::text::BODY,
