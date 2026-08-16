@@ -5,7 +5,7 @@
 //! description panel on the right. Title band and description panel layout
 //! constants are ported from sv-byd-diy's `ui/main.tscn` / `ui/card_panel.gd`.
 
-use ab_glyph::ScaleFont;
+use ab_glyph::{Font, ScaleFont};
 use crate::card::CardConfig;
 use crate::render::{fill_rect, blit_cover};
 use crate::text::TextEngine;
@@ -63,9 +63,8 @@ const CREST_ICON_SIDE: f32 = 59.2; // ~148 @0.4
 const CREST_TEXT_GAP: f32 = 4.0;
 const CREST_BOTTOM: f32 = 12.0; // texture margin 30 @0.4
 // signature rows (fixed on the detail panel)
-const ILLU_TITLE_RIGHT: f32 = 894.6; // 画师行整体左移后的右对齐锚点
+const ILLU_X: f32 = 780.0; // 画师行左边缘（标签左对齐，名字紧跟其后）
 const ILLU_TITLE_Y: f32 = 874.6;
-const ILLU_X: f32 = 899.4;
 const ILLU_SIZE: f32 = 34.0; // 画师行字号（比正文 32.4 略大）
 const DIY_X: f32 = 732.0;
 const DIY_Y: f32 = 966.0; // 下移
@@ -220,6 +219,19 @@ fn blit_stretch(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f
     }
     let resized = image::imageops::resize(src, dw, dh, image::imageops::FilterType::Lanczos3);
     image::imageops::overlay(canvas, &resized, dx.round() as i64, dy.round() as i64);
+}
+
+/// ab_glyph 按字体高度(asc+desc)而非 units-per-em 缩放字号：Noto CJK 的
+/// 高度为 1448、upm 为 1000，直接传 34 实际只渲染约 23.5px。这里把名义字号
+/// 换算成"按 upm 缩放后等于名义值"的输入值。
+fn true_size(font: &ab_glyph::FontArc, size: f32) -> f32 {
+    let height = font.height_unscaled();
+    let upm = font.units_per_em().unwrap_or(height);
+    if upm > 0.0 {
+        size * height / upm
+    } else {
+        size
+    }
 }
 
 /// Resolve the crest icon image: user upload wins, then builtin index.
@@ -535,25 +547,27 @@ pub fn render_diy(
         // 画师行：Noto Sans CJK 对应语言版本（粗体），缺失时回退标题字体
         let illus_font = crate::text::font_by_key(&format!("illus_{}", config.language))
             .unwrap_or_else(|| engine.title.clone());
+        // 标签左对齐，内容直接紧接其后，无需单独定位
         let label = if config.illus_title.is_empty() { "画师:" } else { &config.illus_title };
-        let (lw, _) = engine.measure(&illus_font, label, ILLU_SIZE);
+        let illus_scale = true_size(&illus_font, ILLU_SIZE);
         engine.draw_plain(
             &mut canvas,
             &illus_font,
             label,
-            ILLU_TITLE_RIGHT - lw,
+            ILLU_X,
             ILLU_TITLE_Y,
-            ILLU_SIZE,
+            illus_scale,
             crate::text::BODY,
             0.0,
         );
+        let (lw, _) = engine.measure(&illus_font, label, illus_scale);
         engine.draw_plain(
             &mut canvas,
             &illus_font,
             &config.illustrator,
-            ILLU_X,
+            ILLU_X + lw,
             ILLU_TITLE_Y,
-            ILLU_SIZE,
+            illus_scale,
             crate::text::BODY,
             0.0,
         );
@@ -564,14 +578,15 @@ pub fn render_diy(
             .unwrap_or_else(|| engine.title.clone());
         // ※ 是必定前缀，不依赖用户填写
         let footnote_text = format!("※{}", config.diy);
-        let (w, _) = engine.measure(&footnote_font, &footnote_text, DIY_SIZE);
+        let footnote_scale = true_size(&footnote_font, DIY_SIZE);
+        let (w, _) = engine.measure(&footnote_font, &footnote_text, footnote_scale);
         engine.draw_plain(
             &mut canvas,
             &footnote_font,
             &footnote_text,
             (DIY_RIGHT - w).max(DIY_X),
             DIY_Y,
-            DIY_SIZE,
+            footnote_scale,
             crate::text::BODY,
             0.0,
         );
