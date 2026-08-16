@@ -31,12 +31,13 @@ const FONT_MAP = {
 };
 const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.digits.otf'; // 筑紫明朝（数字字体）
 // 署名行（画师/脚注）字体：Noto Sans CJK 各语言版本（画师=粗体，脚注=常规）
-const SIGNATURE_FONTS = {
-  chs: { illus: 'NotoSansSC-Regular.sub.otf', footnote: 'NotoSansSC-Regular.sub.otf' },
-  cht: { illus: 'NotoSansTC-Regular.sub.otf', footnote: 'NotoSansTC-Regular.sub.otf' },
-  jpn: { illus: 'NotoSansJP-Regular.sub.otf', footnote: 'NotoSansJP-Regular.sub.otf' },
-  kor: { illus: 'NotoSansKR-Regular.sub.otf', footnote: 'NotoSansKR-Regular.sub.otf' },
-  eng: { illus: 'NotoSansSC-Regular.sub.otf', footnote: 'NotoSansSC-Regular.sub.otf' },
+// 署名字体（画师/脚注同用常规体，按需分块）
+const SIGNATURE_FONT = {
+  chs: 'NotoSansSC-Regular.otf',
+  cht: 'NotoSansTC-Regular.otf',
+  jpn: 'NotoSansJP-Regular.otf',
+  kor: 'NotoSansKR-Regular.otf',
+  eng: 'NotoSansSC-Regular.otf',
 };
 
 // Default card preloaded on startup: 90074110 卓越创造物Ω (Masterwork Artifact Ω).
@@ -246,7 +247,9 @@ async function loadFontFile(filename) {
   if (!loadFontFile.inflight) loadFontFile.inflight = new Map();
   if (loadFontFile.inflight.has(filename)) return loadFontFile.inflight.get(filename);
   const p = (async () => {
-    const resp = await fetch('fonts/' + filename);
+    // 分块清单里的路径已含 fonts/ 前缀
+    const url = filename.startsWith('fonts/') ? filename : 'fonts/' + filename;
+    const resp = await fetch(url);
     if (!resp.ok) throw new Error(t('fontLoadFailed') + filename);
     const buf = new Uint8Array(await resp.arrayBuffer());
     loadedFonts[filename] = buf;
@@ -257,39 +260,97 @@ async function loadFontFile(filename) {
   return p;
 }
 
-// Start downloading a language's fonts immediately (no wasm needed yet) so the
-// big title font downloads in parallel with the wasm module.
-function startFontDownload(lang) {
-  const titleFile = FONT_MAP[lang] || FONT_MAP.chs;
-  return Promise.all([loadFontFile(titleFile), loadFontFile(NUMBER_FONT)]);
+// ---- 字体分块按需加载（unicode-range 分包，参照 shadowverse-wb.com 的做法） ----
+
+let fontChunksManifest = null;
+
+async function loadFontChunksManifest() {
+  if (fontChunksManifest) return fontChunksManifest;
+  try {
+    const resp = await fetch('font-chunks.json');
+    fontChunksManifest = resp.ok ? await resp.json() : {};
+  } catch (e) {
+    fontChunksManifest = {};
+  }
+  return fontChunksManifest;
 }
 
-// Register already-downloaded font bytes (requires the wasm to be initialized).
-function registerFonts(lang, bufs) {
-  const keys = [`title_${lang}`, 'number'];
-  for (let i = 0; i < keys.length; i++) {
-    // Registering re-parses the whole font each time — skip when already done.
-    if (registeredFonts.has(keys[i])) continue;
-    if (!register_font(keys[i], bufs[i])) {
-      throw new Error(t('fontRegFailed') + keys[i]);
+// 递归收集配置里的全部字符串（用于计算需要哪些字体块）
+function collectTextStrings(cfg) {
+  const out = [];
+  const walk = (v) => {
+    if (typeof v === 'string') out.push(v);
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+  };
+  walk(cfg);
+  return out;
+}
+
+const registeredChunks = {}; // prefix -> Set(已注册的分块文件)
+
+// 按需拉取+注册 prefix 的分块字体；缺清单或失败时回退整字体（prefix 无后缀键）
+async function ensureChunkFonts(prefix, manifestKey, texts, fallbackFile) {
+  const manifest = await loadFontChunksManifest();
+  const entry = manifest[manifestKey];
+  const done = registeredChunks[prefix] || (registeredChunks[prefix] = new Set());
+  if (!entry || !entry.files || !entry.files.length) {
+    if (!registeredFonts.has(prefix)) {
+      const buf = await loadFontFile(fallbackFile);
+      if (!register_font(prefix, buf)) throw new Error(t('fontRegFailed') + prefix);
+      registeredFonts.add(prefix);
     }
-    registeredFonts.add(keys[i]);
+    return;
+  }
+  // 计算文本用到的块
+  const needed = new Set();
+  for (const text of texts) {
+    for (const ch of text) {
+      const cp = ch.codePointAt(0);
+      for (const f of entry.files) {
+        for (const [lo, hi] of f.ranges) {
+          if (cp >= lo && cp <= hi) { needed.add(f.file); break; }
+        }
+      }
+    }
+  }
+  for (const file of needed) {
+    if (done.has(file)) continue;
+    try {
+      const buf = await loadFontFile(file);
+      const m = file.match(/(\d+)\.otf$/);
+      const idx = m ? m[1] : String(done.size);
+      if (!register_font(`${prefix}_${idx}`, buf)) throw new Error('register failed');
+      done.add(file);
+    } catch (e) {
+      // 分块失败：回退整字体
+      console.warn('chunk font failed, fallback to whole font:', file, e);
+      const buf = await loadFontFile(fallbackFile);
+      if (!registeredFonts.has(prefix)) {
+        if (!register_font(prefix, buf)) throw new Error(t('fontRegFailed') + prefix);
+        registeredFonts.add(prefix);
+      }
+      return;
+    }
   }
 }
 
-async function loadFonts(lang) {
-  const bufs = await startFontDownload(lang);
-  registerFonts(lang, bufs);
-  // 署名行字体：Noto Sans CJK 对应语言版本（画师=粗体，脚注=常规）
-  const sig = SIGNATURE_FONTS[lang] || SIGNATURE_FONTS.chs;
-  const keys = [`illus_${lang}`, `footnote_${lang}`];
-  const files = [sig.illus, sig.footnote];
-  for (let i = 0; i < keys.length; i++) {
-    if (registeredFonts.has(keys[i])) continue;
-    const buf = await loadFontFile(files[i]);
-    if (!register_font(keys[i], buf)) throw new Error(t('fontRegFailed') + keys[i]);
-    registeredFonts.add(keys[i]);
+async function loadFonts(lang, cfg) {
+  const texts = collectTextStrings(cfg);
+  // 署名行只需要画师/脚注文本的字符块
+  const sigTexts = [cfg.illus_title || '', cfg.illustrator || '', cfg.diy || ''];
+  // 数字字体（整文件，仅 124KB）
+  const numberBuf = await loadFontFile(NUMBER_FONT);
+  if (!registeredFonts.has('number')) {
+    if (!register_font('number', numberBuf)) throw new Error(t('fontRegFailed') + 'number');
+    registeredFonts.add('number');
   }
+  // 标题字体：按需分块
+  await ensureChunkFonts(`title_${lang}`, lang, texts, FONT_MAP[lang] || FONT_MAP.chs);
+  // 署名字体：画师与脚注（常规体）
+  const sigFile = SIGNATURE_FONT[lang] || SIGNATURE_FONT.chs;
+  await ensureChunkFonts(`illus_${lang}`, `${lang}-sig`, sigTexts, sigFile);
+  await ensureChunkFonts(`footnote_${lang}`, `${lang}-sig`, sigTexts, sigFile);
 }
 
 const $ = (sel) => document.querySelector(sel);
@@ -383,9 +444,27 @@ function buildRenderConfig() {
   return cfg;
 }
 
-function renderCard(config, art) {
+// wbm 职业编号 -> byd-diy 背景文件名（与 wasm 内 DIY_CLASSES 一致）
+const DIY_BG_CLASS = ['neutral', 'forestcraft', 'swordcraft', 'runecraft',
+  'dragoncraft', 'abysscraft', 'havencraft', 'portalcraft'];
+const loadedBackgrounds = {}; // 文件名 -> Uint8Array
+
+async function loadClassBackground(config) {
+  const cls = DIY_BG_CLASS[config.class] || 'neutral';
+  const gen = config.bg_type === 1 ? 1 : 2;
+  const file = `backgrounds/${cls}-${gen}.jpg`;
+  if (loadedBackgrounds[file]) return loadedBackgrounds[file];
+  const resp = await fetch(file);
+  if (!resp.ok) return new Uint8Array(0);
+  const buf = new Uint8Array(await resp.arrayBuffer());
+  loadedBackgrounds[file] = buf;
+  return buf;
+}
+
+async function renderCard(config, art) {
   if (isDiy()) {
-    return render_diy_card(JSON.stringify(config), art || new Uint8Array(0));
+    const bg = await loadClassBackground(config);
+    return render_diy_card(JSON.stringify(config), art || new Uint8Array(0), bg);
   }
   return render_card(JSON.stringify(config), art || new Uint8Array(0));
 }
@@ -401,9 +480,9 @@ function bytesToBase64(bytes) {
 
 async function renderPreview() {
   try {
-    await loadFonts(currentLang);
     const cfg = buildRenderConfig();
-    const png = renderCard(cfg, artBytes);
+    await loadFonts(currentLang, cfg);
+    const png = await renderCard(cfg, artBytes);
     const blob = new Blob([png], { type: 'image/png' });
     const url = URL.createObjectURL(blob);
     const img = document.getElementById('preview');
@@ -428,9 +507,9 @@ function downloadBlob(blob, filename) {
 
 async function exportPng() {
   try {
-    await loadFonts(currentLang);
     const cfg = buildRenderConfig();
-    const png = renderCard(cfg, artBytes);
+    await loadFonts(currentLang, cfg);
+    const png = await renderCard(cfg, artBytes);
     const name = (cfg.name || 'card').replace(/[\\/:*?"<>|]/g, '_');
     downloadBlob(new Blob([png], { type: 'image/png' }), `${name}.png`);
   } catch (e) {
@@ -1100,9 +1179,11 @@ function bindEvents() {
 }
 
 async function main() {
-  // Kick off the heavy downloads (fonts + default art) immediately so they run
-  // in parallel with the wasm module loading.
-  const fontDownload = startFontDownload(currentLang);
+  // 预载数字字体与分块清单（与 wasm 并行）；标题字体按需分块拉取
+  const fontDownload = Promise.all([
+    loadFontFile(NUMBER_FONT).catch(() => null),
+    loadFontChunksManifest().catch(() => null),
+  ]);
   document.documentElement.lang = LANG_HTML[currentLang] || 'zh-CN';
   buildLangDropdown();
   updateLangUI();
@@ -1119,7 +1200,7 @@ async function main() {
   buildCrestPickGrid();
   addCrestBlock();
   await cardPromise;
-  registerFonts(currentLang, await fontDownload);
+  await fontDownload;
   bindEvents();
   renderPreview();
 }

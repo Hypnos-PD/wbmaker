@@ -68,14 +68,19 @@ pub fn version() -> String {
 }
 
 /// Render a BYD-DIY (欧丝的印卡机) style product image: 1920x1080 PNG.
-/// User-uploaded crest icons are carried inside the config as base64
-/// (`CrestBlock.icon1_data` / `icon2_data` when the icon spec is "upload").
+/// `bg_png` is the class background jpg (fetched on demand by the frontend);
+/// user-uploaded crest icons are carried inside the config as base64.
 #[wasm_bindgen]
-pub fn render_diy_card(config_json: &str, art_png: &[u8]) -> Result<Vec<u8>, JsValue> {
+pub fn render_diy_card(
+    config_json: &str,
+    art_png: &[u8],
+    bg_png: &[u8],
+) -> Result<Vec<u8>, JsValue> {
     let config: card::CardConfig = serde_json::from_str(config_json)
         .map_err(|e| JsValue::from_str(&format!("config parse error: {e}")))?;
     let art = if art_png.is_empty() { None } else { Some(art_png) };
-    diy::render_diy(&config, art).map_err(|e| JsValue::from_str(&e))
+    let bg = if bg_png.is_empty() { None } else { Some(bg_png) };
+    diy::render_diy(&config, art, bg).map_err(|e| JsValue::from_str(&e))
 }
 
 /// Built-in crest icon names (JSON array), index order matches `builtin:<n>`.

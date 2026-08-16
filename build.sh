@@ -15,6 +15,15 @@ echo "==> copy fonts"
 mkdir -p web/fonts
 cp assets/fonts/*.otf assets/fonts/*.ttf assets/fonts/*.ttc web/fonts/ 2>/dev/null || true
 
+if [ ! -f web/font-chunks.json ]; then
+  echo "==> font chunks missing, generating (needs fontTools)"
+  python3 tools/split_fonts.py || true
+fi
+
+echo "==> copy class backgrounds"
+mkdir -p web/backgrounds
+cp assets/diy/backgrounds/*.jpg web/backgrounds/ 2>/dev/null || true
+
 echo "==> copy crest thumbnails"
 mkdir -p web/crests
 cp assets/diy/crests/*.png web/crests/ 2>/dev/null || true

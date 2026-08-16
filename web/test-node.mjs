@@ -77,6 +77,7 @@ const diyCfg = {
 };
 
 const art = fs.readFileSync('/home/aspharos/Project/sv-byd-diy/img/test/02fba8dd2718e77a51e519ab0895f3b29e6540e3.jpg');
-const diyPng = render_diy_card(JSON.stringify(diyCfg), art);
+const bg = fs.readFileSync('./backgrounds/dragoncraft-2.jpg');
+const diyPng = render_diy_card(JSON.stringify(diyCfg), art, bg);
 fs.writeFileSync('/tmp/wbmaker_diy.png', diyPng);
 console.log('diy rendered', diyPng.length, 'bytes -> /tmp/wbmaker_diy.png');

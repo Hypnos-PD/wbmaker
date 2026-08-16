@@ -76,27 +76,96 @@ fn get_font(key: &str) -> Option<FontArc> {
     FONTS.get()?.lock().unwrap().get(key).cloned()
 }
 
-/// Look up a registered font by key (e.g. "illus_chs" for the 黑体 signature
-/// font). Returns None when the key was never registered.
+/// Look up a registered font by key. Returns None when the key was never
+/// registered.
 pub fn font_by_key(key: &str) -> Option<FontArc> {
     get_font(key)
 }
 
+/// 按前缀收集注册的字体（如 `title_chs`、`title_chs_0`、`title_chs_1`…）。
+/// 分块字体（带数字后缀）排在前面，整字体键排在最后作为兜底。
+pub fn fonts_with_prefix(prefix: &str) -> Vec<FontArc> {
+    let guard = match FONTS.get() {
+        Some(g) => g,
+        None => return Vec::new(),
+    };
+    let map = guard.lock().unwrap();
+    let mut chunk_keys: Vec<&String> = Vec::new();
+    let mut full_key: Option<&String> = None;
+    for key in map.keys() {
+        if let Some(rest) = key.strip_prefix(prefix) {
+            if rest.is_empty() {
+                full_key = Some(key);
+            } else if rest.chars().next().is_some_and(|c| c == '_') {
+                chunk_keys.push(key);
+            }
+        }
+    }
+    // 数字后缀升序
+    chunk_keys.sort_by(|a, b| {
+        let na = a.rsplit('_').next().unwrap_or("").parse::<u32>().unwrap_or(0);
+        let nb = b.rsplit('_').next().unwrap_or("").parse::<u32>().unwrap_or(0);
+        na.cmp(&nb)
+    });
+    let mut out: Vec<FontArc> = chunk_keys.iter().filter_map(|k| map.get(*k).cloned()).collect();
+    if let Some(k) = full_key {
+        if let Some(f) = map.get(k) {
+            out.push(f.clone());
+        }
+    }
+    out
+}
+
+/// 一组按需加载的字体块；渲染时逐字选择包含该字的块（回退渲染）。
+#[derive(Clone)]
+pub struct FontSet {
+    pub fonts: Vec<FontArc>,
+}
+
+impl FontSet {
+    pub fn single(font: FontArc) -> Self {
+        FontSet { fonts: vec![font] }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.fonts.is_empty()
+    }
+
+    pub fn first(&self) -> &FontArc {
+        &self.fonts[0]
+    }
+
+    /// 找到包含 `ch` 的字体块（cmap 未收录返回 GlyphId(0)）。
+    pub fn pick(&self, ch: char) -> (usize, &FontArc) {
+        if self.fonts.len() <= 1 {
+            return (0, &self.fonts[0]);
+        }
+        for (i, f) in self.fonts.iter().enumerate() {
+            if f.glyph_id(ch).0 != 0 {
+                return (i, f);
+            }
+        }
+        (0, &self.fonts[0])
+    }
+}
+
 pub struct TextEngine {
-    /// Card name / title font (per language).
-    pub title: FontArc,
+    /// Card name / title font set (per language, chunked).
+    pub title: FontSet,
     /// Number font (Mincho, closest vector to the game's 筑紫明朝).
     pub number: FontArc,
 }
 
 impl TextEngine {
-    /// Build the engine for a language. Expects `title_<lang>` and `number` to
-    /// have been registered.
+    /// Build the engine for a language. Collects `title_<lang>` and all
+    /// `title_<lang>_<n>` chunk fonts; `number` must be registered.
     pub fn for_language(lang: &str) -> Result<Self, String> {
-        let title = get_font(&format!("title_{lang}"))
-            .ok_or_else(|| format!("title_{lang} font not registered"))?;
+        let title_fonts = fonts_with_prefix(&format!("title_{lang}"));
+        if title_fonts.is_empty() {
+            return Err(format!("title_{lang} font not registered"));
+        }
         let number = get_font("number").ok_or_else(|| "number font not registered".to_string())?;
-        Ok(TextEngine { title, number })
+        Ok(TextEngine { title: FontSet { fonts: title_fonts }, number })
     }
 
     fn scaled<'a>(font: &'a FontArc, size: f32) -> ab_glyph::PxScaleFont<&'a FontArc> {
@@ -104,17 +173,20 @@ impl TextEngine {
     }
 
     /// Advance width and line height of a string at `size` px.
-    pub fn measure(&self, primary: &FontArc, text: &str, size: f32) -> (f32, f32) {
-        let sf = Self::scaled(primary, size);
+    pub fn measure(&self, fonts: &FontSet, text: &str, size: f32) -> (f32, f32) {
         let mut w = 0.0f32;
-        let mut prev: Option<GlyphId> = None;
+        let mut prev: Option<(usize, GlyphId)> = None;
         for ch in text.chars() {
+            let (fi, font) = fonts.pick(ch);
+            let sf = Self::scaled(font, size);
             let gid = sf.glyph_id(ch);
-            if let Some(p) = prev {
-                w += sf.kern(p, gid);
+            if let Some((pi, p)) = prev {
+                if pi == fi {
+                    w += sf.kern(p, gid);
+                }
             }
             w += sf.h_advance(gid);
-            prev = Some(gid);
+            prev = Some((fi, gid));
         }
         (w, size)
     }
@@ -203,24 +275,27 @@ impl TextEngine {
     fn draw_text_at(
         &self,
         img: &mut RgbaImage,
-        primary: &FontArc,
+        fonts: &FontSet,
         text: &str,
         x: f32,
         baseline_y: f32,
         size: f32,
         color: [u8; 4],
     ) {
-        let sf = Self::scaled(primary, size);
         let mut cx = x;
-        let mut prev: Option<GlyphId> = None;
+        let mut prev: Option<(usize, GlyphId)> = None;
         for ch in text.chars() {
+            let (fi, font) = fonts.pick(ch);
+            let sf = Self::scaled(font, size);
             let gid = sf.glyph_id(ch);
-            if let Some(p) = prev {
-                cx += sf.kern(p, gid);
+            if let Some((pi, p)) = prev {
+                if pi == fi {
+                    cx += sf.kern(p, gid);
+                }
             }
-            self.draw_glyph(img, primary, gid, size, cx, baseline_y, color);
+            self.draw_glyph(img, font, gid, size, cx, baseline_y, color);
             cx += sf.h_advance(gid);
-            prev = Some(gid);
+            prev = Some((fi, gid));
         }
     }
 
@@ -228,7 +303,7 @@ impl TextEngine {
     pub fn draw_plain_spacing(
         &self,
         img: &mut RgbaImage,
-        primary: &FontArc,
+        fonts: &FontSet,
         text: &str,
         x: f32,
         y: f32,
@@ -237,20 +312,20 @@ impl TextEngine {
         shadow_off: f32,
         spacing: f32,
     ) {
-        let baseline = y + Self::scaled(primary, size).ascent();
+        let baseline = y + Self::scaled(fonts.first(), size).ascent();
         if shadow_off > 0.0 {
             let off = shadow_off.max(1.0);
             for (dx, dy) in [(-off, 0.0), (off, 0.0), (0.0, -off), (0.0, off), (off, off)] {
-                self.draw_text_spaced(img, primary, text, x + dx, baseline + dy, size, color, spacing);
+                self.draw_text_spaced(img, fonts, text, x + dx, baseline + dy, size, color, spacing);
             }
         }
-        self.draw_text_spaced(img, primary, text, x, baseline, size, color, spacing);
+        self.draw_text_spaced(img, fonts, text, x, baseline, size, color, spacing);
     }
 
     fn draw_text_spaced(
         &self,
         img: &mut RgbaImage,
-        primary: &FontArc,
+        fonts: &FontSet,
         text: &str,
         x: f32,
         baseline_y: f32,
@@ -258,17 +333,20 @@ impl TextEngine {
         color: [u8; 4],
         spacing: f32,
     ) {
-        let sf = Self::scaled(primary, size);
         let mut cx = x;
-        let mut prev: Option<GlyphId> = None;
+        let mut prev: Option<(usize, GlyphId)> = None;
         for ch in text.chars() {
+            let (fi, font) = fonts.pick(ch);
+            let sf = Self::scaled(font, size);
             let gid = sf.glyph_id(ch);
-            if let Some(p) = prev {
-                cx += sf.kern(p, gid);
+            if let Some((pi, p)) = prev {
+                if pi == fi {
+                    cx += sf.kern(p, gid);
+                }
             }
-            self.draw_glyph(img, primary, gid, size, cx, baseline_y, color);
+            self.draw_glyph(img, font, gid, size, cx, baseline_y, color);
             cx += sf.h_advance(gid) + spacing;
-            prev = Some(gid);
+            prev = Some((fi, gid));
         }
     }
 
@@ -276,7 +354,7 @@ impl TextEngine {
     pub fn draw_plain(
         &self,
         img: &mut RgbaImage,
-        primary: &FontArc,
+        fonts: &FontSet,
         text: &str,
         x: f32,
         y: f32,
@@ -284,14 +362,14 @@ impl TextEngine {
         color: [u8; 4],
         shadow_off: f32,
     ) {
-        let baseline = y + Self::scaled(primary, size).ascent();
+        let baseline = y + Self::scaled(fonts.first(), size).ascent();
         if shadow_off > 0.0 {
             let off = shadow_off.max(1.0);
             for (dx, dy) in [(-off, 0.0), (off, 0.0), (0.0, -off), (0.0, off), (off, off)] {
-                self.draw_text_at(img, primary, text, x + dx, baseline + dy, size, SHADOW);
+                self.draw_text_at(img, fonts, text, x + dx, baseline + dy, size, SHADOW);
             }
         }
-        self.draw_text_at(img, primary, text, x, baseline, size, color);
+        self.draw_text_at(img, fonts, text, x, baseline, size, color);
     }
 
     /// Centered text with shadow, replicating wbunpacker's label drawing.
@@ -299,7 +377,7 @@ impl TextEngine {
     pub fn draw_label(
         &self,
         img: &mut RgbaImage,
-        primary: &FontArc,
+        fonts: &FontSet,
         text: &str,
         center_x: f32,
         center_y: f32,
@@ -307,16 +385,16 @@ impl TextEngine {
         max_width: f32,
         shadow_off: f32,
     ) -> f32 {
-        let mut w = self.measure(primary, text, size).0;
+        let mut w = self.measure(fonts, text, size).0;
         while size > 24.0 && w > max_width {
             size -= 2.0;
-            w = self.measure(primary, text, size).0;
+            w = self.measure(fonts, text, size).0;
         }
         let adjusted_cx = center_x - ((max_width - w) * 0.08).max(0.0);
-        let h = self.measure(primary, text, size).1;
+        let h = self.measure(fonts, text, size).1;
         let x = adjusted_cx - w / 2.0;
         let y = center_y - h / 2.0;
-        self.draw_plain(img, primary, text, x, y, size, BODY, shadow_off);
+        self.draw_plain(img, fonts, text, x, y, size, BODY, shadow_off);
         size
     }
 
@@ -420,21 +498,24 @@ impl TextEngine {
     pub fn draw_rich_line(
         &self,
         img: &mut RgbaImage,
-        font: &FontArc,
+        fonts: &FontSet,
         runs: &[RichRun],
         x: f32,
         y: f32,
         size: f32,
     ) -> f32 {
-        let baseline = y + Self::scaled(font, size).ascent();
+        let baseline = y + Self::scaled(fonts.first(), size).ascent();
         let mut cx = x;
-        let sf = Self::scaled(font, size);
-        let mut prev: Option<GlyphId> = None;
+        let mut prev: Option<(usize, GlyphId)> = None;
         for run in runs {
             for ch in run.text.chars() {
+                let (fi, font) = fonts.pick(ch);
+                let sf = Self::scaled(font, size);
                 let gid = sf.glyph_id(ch);
-                if let Some(p) = prev {
-                    cx += sf.kern(p, gid);
+                if let Some((pi, p)) = prev {
+                    if pi == fi {
+                        cx += sf.kern(p, gid);
+                    }
                 }
                 if run.italic {
                     self.draw_glyph_italic(img, font, gid, size, cx, baseline, run.color);
@@ -442,7 +523,7 @@ impl TextEngine {
                     self.draw_glyph(img, font, gid, size, cx, baseline, run.color);
                 }
                 cx += sf.h_advance(gid);
-                prev = Some(gid);
+                prev = Some((fi, gid));
             }
         }
         cx - x
@@ -542,7 +623,7 @@ impl TextEngine {
     pub fn draw_wrapped_rich(
         &self,
         img: &mut RgbaImage,
-        font: &FontArc,
+        fonts: &FontSet,
         text: &str,
         x: f32,
         y: f32,
@@ -553,7 +634,7 @@ impl TextEngine {
         spit: Option<&RgbaImage>,
     ) -> f32 {
         let runs = parse_rich(text);
-        let sf = Self::scaled(font, size);
+        let sf = Self::scaled(fonts.first(), size);
         let line_h = sf.height() + line_gap;
         let mut cursor_y = y;
 
@@ -605,14 +686,18 @@ impl TextEngine {
         let measure_word = |word: &str, color: [u8; 4], italic: bool| -> f32 {
             let run = RichRun { text: word.to_string(), color, italic, split: false };
             let mut w = 0.0f32;
-            let mut prev: Option<GlyphId> = None;
+            let mut prev: Option<(usize, GlyphId)> = None;
             for ch in run.text.chars() {
-                let gid = sf.glyph_id(ch);
-                if let Some(p) = prev {
-                    w += sf.kern(p, gid);
+                let (fi, font) = fonts.pick(ch);
+                let sf2 = Self::scaled(font, size);
+                let gid = sf2.glyph_id(ch);
+                if let Some((pi, p)) = prev {
+                    if pi == fi {
+                        w += sf2.kern(p, gid);
+                    }
                 }
-                w += sf.h_advance(gid);
-                prev = Some(gid);
+                w += sf2.h_advance(gid);
+                prev = Some((fi, gid));
             }
             w
         };
@@ -622,7 +707,7 @@ impl TextEngine {
 
         for (word, color, italic, split, nl) in items {
             if split {
-                if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+                if self.flush_rich_line(img, fonts, &mut cur, &mut cur_w, x, cursor_y, size) {
                     cursor_y += line_h;
                 }
                 if let Some(spit_img) = spit {
@@ -654,7 +739,7 @@ impl TextEngine {
                 continue;
             }
             if nl {
-                if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+                if self.flush_rich_line(img, fonts, &mut cur, &mut cur_w, x, cursor_y, size) {
                     cursor_y += line_h;
                 }
                 cursor_y += para_gap;
@@ -662,7 +747,7 @@ impl TextEngine {
             }
             let w = measure_word(&word, color, italic);
             if cur_w + w > max_w && !cur.is_empty() {
-                if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+                if self.flush_rich_line(img, fonts, &mut cur, &mut cur_w, x, cursor_y, size) {
                     cursor_y += line_h;
                 }
             }
@@ -676,7 +761,7 @@ impl TextEngine {
             cur.push(RichRun { text: word, color, italic, split: false });
             cur_w += w;
         }
-        if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+        if self.flush_rich_line(img, fonts, &mut cur, &mut cur_w, x, cursor_y, size) {
             cursor_y += line_h;
         }
         cursor_y - y
@@ -688,7 +773,7 @@ impl TextEngine {
     fn flush_rich_line(
         &self,
         img: &mut RgbaImage,
-        font: &FontArc,
+        fonts: &FontSet,
         cur: &mut Vec<RichRun>,
         cur_w: &mut f32,
         x: f32,
@@ -698,7 +783,7 @@ impl TextEngine {
         if cur.is_empty() {
             return false;
         }
-        self.draw_rich_line(img, font, cur, x, y, size);
+        self.draw_rich_line(img, fonts, cur, x, y, size);
         cur.clear();
         *cur_w = 0.0;
         true

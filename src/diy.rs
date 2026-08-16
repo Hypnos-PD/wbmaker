@@ -104,28 +104,7 @@ pub const CREST_BUILTIN: [&str; 13] = [
 
 // ---- embedded assets ----
 
-pub fn diy_background_bytes(cls: &str, gen: u8) -> Option<&'static [u8]> {
-    let bytes = match (cls, gen) {
-        ("neutral", 1) => include_bytes!("../assets/diy/backgrounds/neutral-1.jpg") as &[u8],
-        ("neutral", 2) => include_bytes!("../assets/diy/backgrounds/neutral-2.jpg") as &[u8],
-        ("forestcraft", 1) => include_bytes!("../assets/diy/backgrounds/forestcraft-1.jpg") as &[u8],
-        ("forestcraft", 2) => include_bytes!("../assets/diy/backgrounds/forestcraft-2.jpg") as &[u8],
-        ("swordcraft", 1) => include_bytes!("../assets/diy/backgrounds/swordcraft-1.jpg") as &[u8],
-        ("swordcraft", 2) => include_bytes!("../assets/diy/backgrounds/swordcraft-2.jpg") as &[u8],
-        ("runecraft", 1) => include_bytes!("../assets/diy/backgrounds/runecraft-1.jpg") as &[u8],
-        ("runecraft", 2) => include_bytes!("../assets/diy/backgrounds/runecraft-2.jpg") as &[u8],
-        ("dragoncraft", 1) => include_bytes!("../assets/diy/backgrounds/dragoncraft-1.jpg") as &[u8],
-        ("dragoncraft", 2) => include_bytes!("../assets/diy/backgrounds/dragoncraft-2.jpg") as &[u8],
-        ("abysscraft", 1) => include_bytes!("../assets/diy/backgrounds/abysscraft-1.jpg") as &[u8],
-        ("abysscraft", 2) => include_bytes!("../assets/diy/backgrounds/abysscraft-2.jpg") as &[u8],
-        ("havencraft", 1) => include_bytes!("../assets/diy/backgrounds/havencraft-1.jpg") as &[u8],
-        ("havencraft", 2) => include_bytes!("../assets/diy/backgrounds/havencraft-2.jpg") as &[u8],
-        ("portalcraft", 1) => include_bytes!("../assets/diy/backgrounds/portalcraft-1.jpg") as &[u8],
-        ("portalcraft", 2) => include_bytes!("../assets/diy/backgrounds/portalcraft-2.jpg") as &[u8],
-        _ => return None,
-    };
-    Some(bytes)
-}
+
 
 pub fn diy_title_class_bytes(cls: &str) -> Option<&'static [u8]> {
     let bytes = match cls {
@@ -223,7 +202,8 @@ fn blit_stretch(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f
 /// ab_glyph 按字体高度(asc+desc)而非 units-per-em 缩放字号：Noto CJK 的
 /// 高度为 1448、upm 为 1000，直接传 34 实际只渲染约 23.5px。这里把名义字号
 /// 换算成"按 upm 缩放后等于名义值"的输入值。
-fn true_size(font: &ab_glyph::FontArc, size: f32) -> f32 {
+fn true_size(fonts: &crate::text::FontSet, size: f32) -> f32 {
+    let font = fonts.first();
     let height = font.height_unscaled();
     let upm = font.units_per_em().unwrap_or(height);
     if upm > 0.0 {
@@ -279,7 +259,11 @@ fn resolve_crest(spec: &str, data: Option<&str>) -> Result<Option<RgbaImage>, St
     Ok(None) // 空规格/未知规格 = 不绘制图标
 }
 
-pub fn render_diy(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u8>, String> {
+pub fn render_diy(
+    config: &CardConfig,
+    art_bytes: Option<&[u8]>,
+    bg_png: Option<&[u8]>,
+) -> Result<Vec<u8>, String> {
     let mut canvas = RgbaImage::from_pixel(DIY_W, DIY_H, image::Rgba([0, 0, 0, 255]));
 
     let cls = DIY_CLASSES
@@ -288,10 +272,17 @@ pub fn render_diy(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u
         .ok_or_else(|| format!("bad class index {}", config.class))?;
     let bg_gen = if config.bg_type == 1 { 1 } else { 2 };
 
-    // 1. class background (cover-fit, full canvas)
-    let bg_bytes = diy_background_bytes(cls, bg_gen).ok_or("missing background asset")?;
-    let bg = decode(bg_bytes, "background")?;
-    blit_cover(&mut canvas, &bg, 0.0, 0.0, DIY_W as f32, DIY_H as f32);
+    // 1. class background (cover-fit, full canvas; 由前端按需传入对应职业背景)
+    match bg_png {
+        Some(bytes) => {
+            let bg = decode(bytes, "background")?;
+            blit_cover(&mut canvas, &bg, 0.0, 0.0, DIY_W as f32, DIY_H as f32);
+        }
+        None => {
+            // 缺失时用深色底，保证渲染不失败
+            fill_rect(&mut canvas, 0.0, 0.0, DIY_W as f32, DIY_H as f32, [10, 12, 20, 255]);
+        }
+    }
 
     // 2. title band
     let title_bg = decode(diy_effect_bytes("title_bg").unwrap(), "title_bg")?;
@@ -479,9 +470,13 @@ pub fn render_diy(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u
 
     // 6. signature rows
     if config.show_illustrator && !config.illustrator.trim().is_empty() {
-        // 画师行：Noto Sans CJK 对应语言版本（粗体），缺失时回退标题字体
-        let illus_font = crate::text::font_by_key(&format!("illus_{}", config.language))
-            .unwrap_or_else(|| engine.title.clone());
+        // 画师行：Noto Sans CJK 对应语言版本（按需分块），缺失时回退标题字体
+        let illus_fonts = crate::text::fonts_with_prefix(&format!("illus_{}", config.language));
+        let illus_font = if illus_fonts.is_empty() {
+            engine.title.clone()
+        } else {
+            crate::text::FontSet { fonts: illus_fonts }
+        };
         // 标签左对齐，内容直接紧接其后，无需单独定位
         let label = if config.illus_title.is_empty() { "画师:" } else { &config.illus_title };
         let illus_scale = true_size(&illus_font, ILLU_SIZE);
@@ -508,9 +503,13 @@ pub fn render_diy(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u
         );
     }
     if config.show_diy && !config.diy.is_empty() {
-        // 脚注：Noto Sans CJK 对应语言版本（常规），缺失时回退标题字体
-        let footnote_font = crate::text::font_by_key(&format!("footnote_{}", config.language))
-            .unwrap_or_else(|| engine.title.clone());
+        // 脚注：Noto Sans CJK 对应语言版本（按需分块），缺失时回退标题字体
+        let footnote_fonts = crate::text::fonts_with_prefix(&format!("footnote_{}", config.language));
+        let footnote_font = if footnote_fonts.is_empty() {
+            engine.title.clone()
+        } else {
+            crate::text::FontSet { fonts: footnote_fonts }
+        };
         // ※ 是必定前缀，不依赖用户填写
         let footnote_text = format!("※{}", config.diy);
         let footnote_scale = true_size(&footnote_font, DIY_SIZE);
@@ -541,7 +540,7 @@ fn measure_rich(engine: &TextEngine, text: &str, max_w: f32, size: f32) -> f32 {
     }
     // Quick estimate via draw into a scratch image is wasteful; instead we
     // measure with the same tokenizer: lines * (font height + line gap).
-    let sf = ab_glyph::Font::as_scaled(&engine.title, ab_glyph::PxScale::from(size));
+    let sf = ab_glyph::Font::as_scaled(engine.title.first(), ab_glyph::PxScale::from(size));
     let line_h = sf.height() + LINE_GAP;
     let mut lines = 1usize;
     let mut cur_w = 0.0f32;
@@ -773,9 +772,6 @@ mod tests {
     #[test]
     fn all_diy_assets_exist() {
         for cls in DIY_CLASSES {
-            for gen in 1..=2 {
-                assert!(diy_background_bytes(cls, gen).is_some(), "{cls}-{gen}");
-            }
             assert!(diy_title_class_bytes(cls).is_some(), "title_class {cls}");
         }
         for key in [
@@ -830,7 +826,7 @@ mod tests {
             }],
             ..Default::default()
         };
-        let out = render_diy(&cfg, None).expect("render diy");
+        let out = render_diy(&cfg, None, None).expect("render diy");
         assert!(out.len() > 1000);
         let img = image::load_from_memory(&out).expect("decode");
         assert_eq!((img.width(), img.height()), (1920, 1080));

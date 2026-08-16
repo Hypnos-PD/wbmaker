@@ -78,6 +78,14 @@ cd web && node test-node.mjs
 # 生成 /tmp/wbmaker_wb.png（官方卡）与 /tmp/wbmaker_diy.png（DIY 卡）
 ```
 
+## 字体与加载策略
+
+字体采用与 shadowverse-wb.com 相同的 **unicode-range 分块按需加载**：
+每个字体被切成 128 字/块的 otf 分块（`tools/split_fonts.py` 生成，
+清单 `web/font-chunks.json`），前端根据当前卡牌实际用到的字符只拉取
+对应的块，wasm 端逐字回退渲染。整字体文件仅作分块失败时的兜底。
+职业背景图同样按需拉取，不再内嵌进 wasm。
+
 ## 字体
 
 - **卡名/正文**：按语言从游戏本地安装包 `ShadowverseWB_Data/data.unity3d`（Steam，非 CDN）解包得到的矢量字体：简中 `arweibeigbpro_bd.otf`、繁中 `DFT_W7-930.ttf`、日文 `MOC-KaiminTsuki-B.otf`、韩文 `NanumGothic-ExtraBold.ttf`、英文 `MOC-KaiminTsuki-B.otf`。DIY 模式的正文复用各语言标题字体。
