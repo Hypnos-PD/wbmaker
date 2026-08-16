@@ -488,11 +488,14 @@ function cropZoomAt(mx, my, factor) {
 // Map the viewport back into image coordinates → normalized crop rect.
 function getCrop() {
   const { vw, vh, iw, ih, k, ox, oy } = cropView;
+  const denomX = k * iw;
+  const denomY = k * ih;
+  if (!denomX || !denomY) return null;
   return {
-    x: -ox / (k * iw),
-    y: -oy / (k * ih),
-    w: vw / (k * iw),
-    h: vh / (k * ih),
+    x: Math.min(1, Math.max(0, -ox / denomX)),
+    y: Math.min(1, Math.max(0, -oy / denomY)),
+    w: Math.min(1, Math.max(0, vw / denomX)),
+    h: Math.min(1, Math.max(0, vh / denomY)),
   };
 }
 
@@ -510,16 +513,19 @@ function openCropPanel(pngBytes) {
     cropView.url = url;
     cropView.resolve = resolve;
     img.onload = () => {
-      const viewport = cropViewportEl();
       cropView.iw = img.naturalWidth;
       cropView.ih = img.naturalHeight;
+      img.style.width = cropView.iw + 'px';
+      img.style.height = cropView.ih + 'px';
+      // Show the overlay before measuring so the viewport has a real layout
+      // (a hidden element reports clientWidth/clientHeight == 0, which would
+      // zero the scale and make the crop a NaN).
+      overlay.hidden = false;
+      const viewport = cropViewportEl();
       cropView.vw = viewport.clientWidth;
       cropView.vh = viewport.clientHeight;
       cropView.k0 = Math.max(cropView.vw / cropView.iw, cropView.vh / cropView.ih);
       cropView.maxK = cropView.k0 * 8;
-      img.style.width = cropView.iw + 'px';
-      img.style.height = cropView.ih + 'px';
-      overlay.hidden = false;
       resetCrop();
     };
     img.src = url;
