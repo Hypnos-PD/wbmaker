@@ -877,8 +877,11 @@ pub fn parse_rich(text: &str) -> Vec<RichRun> {
             }
             '【' | '『' => {
                 let closing = if c == '【' { '】' } else { '』' };
+                // 只有【】里的关键词标黄；『』（卡牌名引用）保持当前颜色
+                let highlight = c == '【';
+                let color_before = color;
                 push(&mut runs, &mut cur, color, italic);
-                cur.push(c); // opening bracket, white
+                cur.push(c); // opening bracket
                 i += c.len_utf8();
                 loop {
                     if i >= bytes.len() {
@@ -889,8 +892,10 @@ pub fn parse_rich(text: &str) -> Vec<RichRun> {
                     if ch == closing {
                         break;
                     }
-                    // digits and underscores stay white inside the brackets
-                    let hc = if ch == '_' || "0123456789".contains(ch) {
+                    // 【】内：数字与下划线保持白色，其余标黄；『』内：一律保持当前颜色
+                    let hc = if !highlight {
+                        color
+                    } else if ch == '_' || "0123456789".contains(ch) {
                         BODY
                     } else {
                         KEYWORD_YELLOW
@@ -901,8 +906,8 @@ pub fn parse_rich(text: &str) -> Vec<RichRun> {
                     i += ch.len_utf8();
                 }
                 push(&mut runs, &mut cur, color, italic);
-                color = BODY;
-                // closing bracket, white
+                // 闭括号：『』沿用进入前的颜色（如粗体金），【】为白色
+                color = if highlight { BODY } else { color_before };
                 cur.push(closing);
                 i += closing.len_utf8();
             }
@@ -1099,6 +1104,20 @@ mod tests {
     }
 
     #[test]
+    fn rich_parse_hollow_brackets_stay_uncolored() {
+        // 『』里的文字（卡牌名引用）不应标黄
+        let runs = parse_rich("『精灵』");
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].text, "『精灵』");
+        assert_eq!(runs[0].color, BODY);
+        // 在粗体语境中保持金色
+        let runs = parse_rich("[b]『精灵』[/b]");
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].text, "『精灵』");
+        assert_eq!(runs[0].color, KEYWORD_GOLD);
+    }
+
+    #[test]
     fn rich_parse_bracket_digits_stay_white() {
         // digits + underscore inside brackets stay white, so everything merges
         // into one white run.
@@ -1131,4 +1150,5 @@ mod tests {
         assert_eq!(number_pair_kern('0', '1', 250.0), -24.0);
     }
 }
+
 
