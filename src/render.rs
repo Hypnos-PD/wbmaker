@@ -202,14 +202,14 @@ pub fn render(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u8>, 
 
 // ---- image helpers ----
 
-fn resize_lanczos(img: &RgbaImage, w: u32, h: u32) -> RgbaImage {
+pub(crate) fn resize_lanczos(img: &RgbaImage, w: u32, h: u32) -> RgbaImage {
     DynamicImage::ImageRgba8(img.clone())
         .resize_exact(w, h, image::imageops::FilterType::Lanczos3)
         .to_rgba8()
 }
 
 /// Cover-fit `src` into the destination rectangle (scale to fill, crop, center).
-fn blit_cover(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f32, dh: f32) {
+pub(crate) fn blit_cover(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f32, dh: f32) {
     let (sw, sh) = src.dimensions();
     if sw == 0 || sh == 0 {
         return;
@@ -229,7 +229,7 @@ fn blit_cover(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f32
 /// Crop `src` using a normalized rect (`crop.x/y/w/h` in [0,1] relative to the
 /// image) and blit the result into the destination rectangle at full source
 /// resolution. The rect is clamped to the image bounds.
-fn blit_crop(
+pub(crate) fn blit_crop(
     canvas: &mut RgbaImage,
     src: &RgbaImage,
     dx: f32,
@@ -258,7 +258,7 @@ fn blit_crop(
 }
 
 /// Alpha-blend a filled rectangle.
-fn fill_rect(img: &mut RgbaImage, x: f32, y: f32, w: f32, h: f32, color: [u8; 4]) {
+pub(crate) fn fill_rect(img: &mut RgbaImage, x: f32, y: f32, w: f32, h: f32, color: [u8; 4]) {
     let x0 = x.round() as i64;
     let y0 = y.round() as i64;
     let x1 = (x + w).round() as i64;

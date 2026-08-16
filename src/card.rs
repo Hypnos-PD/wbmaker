@@ -2,12 +2,21 @@
 
 use serde::Deserialize;
 
+/// Render styles: official WB card or the BYD-DIY (欧丝的印卡机) product.
+pub const STYLE_WB: &str = "wb";
+#[allow(dead_code)]
+pub const STYLE_DIY: &str = "diy";
+
 /// Card types (matches WBArts `card.type`).
 pub const KIND_FOLLOWER: u8 = 1;
 #[allow(dead_code)]
 pub const KIND_AMULET: u8 = 2;
 #[allow(dead_code)]
 pub const KIND_SPELL: u8 = 3;
+
+/// DIY rarity 5 = peculiar (异画) — only exists in the DIY style.
+#[allow(dead_code)]
+pub const RARITY_PECULIAR: u8 = 5;
 
 /// Normalized crop rectangle (each component in [0,1] relative to the original
 /// art image). Produced by the web crop panel; `None` falls back to cover-fit.
@@ -38,9 +47,8 @@ pub struct CardConfig {
     pub crop: Option<ArtCrop>,
 
     // --- skill text sections ---
-    // No text is rendered onto the pure card image. All of these fields are
-    // reserved for the sv-byd-diy-style export (正文/第二段正文/进化/超进化/
-    // 纹章/署名) and are not drawn on the card.
+    // These are not drawn on the pure WB card image; they are rendered only in
+    // the DIY style (正文/第二段正文/进化/超进化/纹章/署名).
     pub detail1: String,      // 正文 (sv-byd-diy only)
     pub detail2: String,      // 第二段正文 (sv-byd-diy only)
     pub evolve: String,       // 进化时 text (sv-byd-diy only)
@@ -72,6 +80,27 @@ pub struct CardConfig {
 
     // --- output ---
     pub scale: f32,           // output scale multiplier; 1.0 => 782x1024
+
+    // --- style ---
+    pub style: String,        // "wb" (default) or "diy"
+
+    // --- DIY-only (欧丝的印卡机 style) ---
+    pub bg_type: u8,          // 1 = 一代(OG dark), 2 = byd (default)
+    pub trait_text: String,   // 兵种类型 free text shown in the title band
+    pub class_title: String,  // localized "职业" label (title band)
+    pub type_title: String,   // localized "类型" label (title band)
+    pub class_text: String,   // localized class name (title band)
+    pub crest_border: u8,     // 0 纹章 / 1 信仰 / 2 激奏 / 3 结晶
+    pub crest_scale: f32,     // crest banner scale, 0.1..=1.5, default 1.0
+    pub name_size_offset: f32,// added to the DIY card-name size (45)
+    pub d1_size: f32,         // 正文 font size (px), default 32.4
+    pub d2_size: f32,
+    pub ev_size: f32,
+    pub super_size: f32,
+    pub crest_size: f32,
+    pub crest_icon1: String,  // "" | "builtin:<n>" | "upload"
+    pub crest_icon2: String,
+    pub show_crest_icon2: bool,
 }
 
 impl Default for CardConfig {
@@ -114,6 +143,23 @@ impl Default for CardConfig {
             def_dy: -14.0,
             bg_alpha: 0.55,
             scale: 1.0,
+            style: String::from(STYLE_WB),
+            bg_type: 2,
+            trait_text: String::new(),
+            class_title: String::from("职业"),
+            type_title: String::from("类型"),
+            class_text: String::new(),
+            crest_border: 0,
+            crest_scale: 1.0,
+            name_size_offset: 0.0,
+            d1_size: 32.4,
+            d2_size: 32.4,
+            ev_size: 32.4,
+            super_size: 32.4,
+            crest_size: 32.4,
+            crest_icon1: String::new(),
+            crest_icon2: String::new(),
+            show_crest_icon2: false,
         }
     }
 }

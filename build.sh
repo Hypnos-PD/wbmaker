@@ -15,4 +15,8 @@ echo "==> copy fonts"
 mkdir -p web/fonts
 cp assets/fonts/*.otf assets/fonts/*.ttf assets/fonts/*.ttc web/fonts/ 2>/dev/null || true
 
+echo "==> copy crest thumbnails"
+mkdir -p web/crests
+cp assets/diy/crests/*.png web/crests/ 2>/dev/null || true
+
 echo "==> done. Serve with:  python3 -m http.server -d web 8000"

@@ -11,6 +11,10 @@ use std::sync::{Mutex, OnceLock};
 
 pub const BODY: [u8; 4] = [255, 255, 255, 255];
 pub const SHADOW: [u8; 4] = [0, 0, 0, 210];
+/// DIY keyword gold ([b]…[/b]), same tone as the BYD-DIY tool (#ffd676).
+pub const KEYWORD_GOLD: [u8; 4] = [255, 214, 118, 255];
+/// DIY bracket-keyword yellow (【…】『…』, [color=yellow]).
+pub const KEYWORD_YELLOW: [u8; 4] = [255, 255, 0, 255];
 
 /// Minimum rasterizer coverage we accept as "covered".
 ///
@@ -358,6 +362,465 @@ impl TextEngine {
         buf
     }
 
+    /// Number with a colored glow (DIY style cost/atk/def): blurred glow in
+    /// `glow_color` at `glow_alpha`, white core on top.
+    pub fn draw_number_glow(
+        &self,
+        img: &mut RgbaImage,
+        text: &str,
+        center_x: f32,
+        center_y: f32,
+        size: f32,
+        max_width: f32,
+        glow_color: [u8; 4],
+        glow_alpha: f32,
+    ) {
+        let font = &self.number;
+        let mut w = self.measure_spaced(font, text, size, 0.0).0;
+        let mut s = size;
+        while s > 24.0 && w > max_width {
+            s -= 2.0;
+            w = self.measure_spaced(font, text, s, 0.0).0;
+        }
+        let radius = ((s * 0.10).round() as u32).clamp(1, 12);
+        let pad = (s * 0.07).ceil() as u32 + 1 + radius * 2;
+        let buf = self.render_number_buffer(text, s, 0.0, pad);
+        let (bw, bh) = buf.dimensions();
+        let dx = center_x - bw as f32 / 2.0;
+        let dy = center_y - bh as f32 / 2.0;
+        if glow_alpha > 0.0 {
+            let mut blurred = box_blur_alpha(&buf, radius);
+            blurred = box_blur_alpha(&blurred, radius);
+            let mut glow = glow_color;
+            glow[3] = (glow_alpha * 255.0).round() as u8;
+            composite_tint(img, &blurred, dx, dy, glow);
+        }
+        composite_tint(img, &buf, dx, dy, BODY);
+    }
+
+    /// Draw one line of styled runs (no wrapping). `y` is the text top.
+    pub fn draw_rich_line(
+        &self,
+        img: &mut RgbaImage,
+        font: &FontArc,
+        runs: &[RichRun],
+        x: f32,
+        y: f32,
+        size: f32,
+    ) -> f32 {
+        let baseline = y + Self::scaled(font, size).ascent();
+        let mut cx = x;
+        let sf = Self::scaled(font, size);
+        let mut prev: Option<GlyphId> = None;
+        for run in runs {
+            for ch in run.text.chars() {
+                let gid = sf.glyph_id(ch);
+                if let Some(p) = prev {
+                    cx += sf.kern(p, gid);
+                }
+                if run.italic {
+                    self.draw_glyph_italic(img, font, gid, size, cx, baseline, run.color);
+                } else {
+                    self.draw_glyph(img, font, gid, size, cx, baseline, run.color);
+                }
+                cx += sf.h_advance(gid);
+                prev = Some(gid);
+            }
+        }
+        cx - x
+    }
+
+    /// Rasterize a glyph into a straight-alpha buffer (white, coverage in alpha).
+    fn rasterize_alpha(
+        &self,
+        font: &FontArc,
+        gid: GlyphId,
+        size: f32,
+        x: f32,
+        baseline_y: f32,
+        buf: &mut RgbaImage,
+    ) {
+        let glyph = gid.with_scale_and_position(PxScale::from(size), point(x, baseline_y));
+        if let Some(outlined) = font.outline_glyph(glyph) {
+            let b = outlined.px_bounds();
+            let ox = b.min.x.round() as i32;
+            let oy = b.min.y.round() as i32;
+            outlined.draw(|gx, gy, cov| {
+                let px = ox + gx as i32;
+                let py = oy + gy as i32;
+                if px < 0 || py < 0 {
+                    return;
+                }
+                let (px, py) = (px as u32, py as u32);
+                if px >= buf.width() || py >= buf.height() {
+                    return;
+                }
+                let a = cov.clamp(0.0, 1.0);
+                if a < COVERAGE_EPSILON {
+                    return;
+                }
+                let alpha = (a * 255.0).round() as u8;
+                let d = buf.get_pixel_mut(px, py);
+                if alpha > d[3] {
+                    d[0] = 255;
+                    d[1] = 255;
+                    d[2] = 255;
+                    d[3] = alpha;
+                }
+            });
+        }
+    }
+
+    /// Fake-italic glyph: rasterize upright, then shear rows and blend.
+    fn draw_glyph_italic(
+        &self,
+        img: &mut RgbaImage,
+        font: &FontArc,
+        gid: GlyphId,
+        size: f32,
+        x: f32,
+        baseline_y: f32,
+        color: [u8; 4],
+    ) {
+        let glyph = gid.with_scale_and_position(PxScale::from(size), point(0.0, 0.0));
+        let Some(outlined) = font.outline_glyph(glyph) else { return };
+        let b = outlined.px_bounds();
+        if b.width() <= 0.0 || b.height() <= 0.0 {
+            return;
+        }
+        const SLANT: f32 = 0.22;
+        let pad = (size * 0.1).ceil() as u32 + 2;
+        let bw = b.width().ceil() as u32 + pad * 2;
+        let bh = b.height().ceil() as u32 + pad * 2;
+        let mut buf = RgbaImage::new(bw, bh);
+        let bx = pad as f32 - b.min.x;
+        let by = pad as f32 - b.min.y;
+        self.rasterize_alpha(font, gid, size, bx, by, &mut buf);
+
+        let dx = x + b.min.x - pad as f32;
+        let dy = baseline_y + b.min.y - pad as f32;
+        let ox = dx.round() as i64;
+        let oy = dy.round() as i64;
+        let mid = bh as f32 / 2.0;
+        for (px, py, p) in buf.enumerate_pixels() {
+            let a = p[3] as f32 / 255.0;
+            if a <= 0.0 {
+                continue;
+            }
+            let shear = (py as f32 - mid) * SLANT;
+            let tx = (px as f32 + shear).round() as i64;
+            let txx = ox + tx;
+            let tyy = oy + py as i64;
+            if txx < 0 || tyy < 0 || txx >= img.width() as i64 || tyy >= img.height() as i64 {
+                continue;
+            }
+            let d = img.get_pixel_mut(txx as u32, tyy as u32);
+            let sa = a * (color[3] as f32 / 255.0);
+            if sa >= 1.0 {
+                d[0] = color[0];
+                d[1] = color[1];
+                d[2] = color[2];
+                d[3] = 255;
+                continue;
+            }
+            let da = 1.0 - sa;
+            d[0] = (color[0] as f32 * sa + d[0] as f32 * da) as u8;
+            d[1] = (color[1] as f32 * sa + d[1] as f32 * da) as u8;
+            d[2] = (color[2] as f32 * sa + d[2] as f32 * da) as u8;
+            d[3] = 255;
+        }
+    }
+
+    /// Wrap and draw rich text (DIY card description). Returns the total height
+    /// used. `spit` is the section-split line drawn for `[img]…[/img]` runs.
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_wrapped_rich(
+        &self,
+        img: &mut RgbaImage,
+        font: &FontArc,
+        text: &str,
+        x: f32,
+        y: f32,
+        max_w: f32,
+        size: f32,
+        line_gap: f32,
+        para_gap: f32,
+        spit: Option<&RgbaImage>,
+    ) -> f32 {
+        let runs = parse_rich(text);
+        let sf = Self::scaled(font, size);
+        let line_h = sf.height() + line_gap;
+        let space_w = sf.h_advance(sf.glyph_id(' '));
+        let mut cursor_y = y;
+
+        // Tokenize into items: (text, color, italic, is_split, is_newline).
+        // A word keeps its trailing space so inter-word gaps survive wrapping.
+        let mut items: Vec<(String, [u8; 4], bool, bool, bool)> = Vec::new();
+        for run in &runs {
+            if run.split {
+                items.push((String::new(), BODY, false, true, false));
+                continue;
+            }
+            let mut j = 0;
+            while j < run.text.len() {
+                let ch = run.text[j..].chars().next().unwrap();
+                if ch == '\n' {
+                    items.push((String::new(), run.color, run.italic, false, true));
+                    j += 1;
+                    continue;
+                }
+                let start = j;
+                let stop = if ch.is_ascii() {
+                    j += 1;
+                    while j < run.text.len() {
+                        let c = run.text[j..].chars().next().unwrap();
+                        if c == ' ' || c == '\n' || !c.is_ascii() {
+                            break;
+                        }
+                        j += 1;
+                    }
+                    j
+                } else {
+                    j += ch.len_utf8();
+                    j
+                };
+                let mut word = run.text[start..stop].to_string();
+                // keep one trailing space (if present) as part of the word
+                if stop < run.text.len() && run.text[stop..].starts_with(' ') {
+                    word.push(' ');
+                }
+                items.push((word, run.color, run.italic, false, false));
+            }
+        }
+
+        let measure_word = |word: &str, color: [u8; 4], italic: bool| -> f32 {
+            let run = RichRun { text: word.to_string(), color, italic, split: false };
+            let mut w = 0.0f32;
+            let mut prev: Option<GlyphId> = None;
+            for ch in run.text.chars() {
+                let gid = sf.glyph_id(ch);
+                if let Some(p) = prev {
+                    w += sf.kern(p, gid);
+                }
+                w += sf.h_advance(gid);
+                prev = Some(gid);
+            }
+            w
+        };
+
+        let mut cur: Vec<RichRun> = Vec::new();
+        let mut cur_w: f32 = 0.0;
+
+        for (word, color, italic, split, nl) in items {
+            if split {
+                if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+                    cursor_y += line_h;
+                }
+                if let Some(spit_img) = spit {
+                    let sh = (spit_img.height() as f32).max(2.0);
+                    for (px, py, p) in spit_img.enumerate_pixels() {
+                        if p[3] == 0 {
+                            continue;
+                        }
+                        let tx = x + px as f32 * (max_w / spit_img.width() as f32);
+                        let ty = cursor_y + py as f32 * (sh / spit_img.height() as f32);
+                        let txx = tx.round() as i64;
+                        let tyy = ty.round() as i64;
+                        if txx >= 0
+                            && tyy >= 0
+                            && (txx as u32) < img.width()
+                            && (tyy as u32) < img.height()
+                        {
+                            let d = img.get_pixel_mut(txx as u32, tyy as u32);
+                            let a = p[3] as f32 / 255.0;
+                            let da = 1.0 - a;
+                            d[0] = (p[0] as f32 * a + d[0] as f32 * da) as u8;
+                            d[1] = (p[1] as f32 * a + d[1] as f32 * da) as u8;
+                            d[2] = (p[2] as f32 * a + d[2] as f32 * da) as u8;
+                            d[3] = 255;
+                        }
+                    }
+                    cursor_y += sh + line_gap;
+                }
+                continue;
+            }
+            if nl {
+                if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+                    cursor_y += line_h;
+                }
+                cursor_y += para_gap;
+                continue;
+            }
+            let w = measure_word(&word, color, italic);
+            if cur_w + w > max_w && !cur.is_empty() {
+                if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+                    cursor_y += line_h;
+                }
+            }
+            if !cur.is_empty() {
+                if let Some(last) = cur.last_mut() {
+                    last.text.push(' ');
+                }
+                cur_w += space_w;
+            }
+            if let Some(last) = cur.last_mut() {
+                if last.color == color && last.italic == italic {
+                    last.text.push_str(&word);
+                    cur_w += w;
+                    continue;
+                }
+            }
+            cur.push(RichRun { text: word, color, italic, split: false });
+            cur_w += w;
+        }
+        if self.flush_rich_line(img, font, &mut cur, &mut cur_w, x, cursor_y, size) {
+            cursor_y += line_h;
+        }
+        cursor_y - y
+    }
+
+    /// Draw a pending line of runs, then clear it. Returns whether a line was
+    /// drawn (caller advances the cursor by the line height).
+    #[allow(clippy::too_many_arguments)]
+    fn flush_rich_line(
+        &self,
+        img: &mut RgbaImage,
+        font: &FontArc,
+        cur: &mut Vec<RichRun>,
+        cur_w: &mut f32,
+        x: f32,
+        y: f32,
+        size: f32,
+    ) -> bool {
+        if cur.is_empty() {
+            return false;
+        }
+        self.draw_rich_line(img, font, cur, x, y, size);
+        cur.clear();
+        *cur_w = 0.0;
+        true
+    }
+
+}
+
+/// A styled run of text produced by parsing the DIY card markup.
+pub struct RichRun {
+    pub text: String,
+    pub color: [u8; 4],
+    pub italic: bool,
+    /// `[img]…[/img]` — rendered as a full-width split line by the caller.
+    pub split: bool,
+}
+
+/// Parse the markup used by the 欧丝的印卡机 tool:
+///   `[b]…[/b]`  → gold (#ffd676)
+///   `[i]…[/i]`  → italic (sheared)
+///   `【…】` `『…』` → inner text yellow, brackets stay white
+///   `[img]…[/img]` → split-line run
+pub fn parse_rich(text: &str) -> Vec<RichRun> {
+    let mut runs: Vec<RichRun> = Vec::new();
+    let mut color = BODY;
+    let mut italic = false;
+    let mut cur = String::new();
+
+    let push = |runs: &mut Vec<RichRun>, cur: &mut String, color: [u8; 4], italic: bool| {
+        if !cur.is_empty() {
+            if let Some(last) = runs.last_mut() {
+                if !last.split && last.color == color && last.italic == italic {
+                    last.text.push_str(cur);
+                    cur.clear();
+                    return;
+                }
+            }
+            runs.push(RichRun { text: std::mem::take(cur), color, italic, split: false });
+        }
+    };
+
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let rest = &text[i..];
+        let c = rest.chars().next().unwrap();
+        match c {
+            '[' => {
+                if let Some(tag_end) = rest.find(']') {
+                    let tag = &rest[1..tag_end];
+                    match tag {
+                        "b" => {
+                            push(&mut runs, &mut cur, color, italic);
+                            color = KEYWORD_GOLD;
+                        }
+                        "/b" => {
+                            push(&mut runs, &mut cur, color, italic);
+                            color = BODY;
+                        }
+                        "i" => {
+                            push(&mut runs, &mut cur, color, italic);
+                            italic = true;
+                        }
+                        "/i" => {
+                            push(&mut runs, &mut cur, color, italic);
+                            italic = false;
+                        }
+                        "img" => {
+                            push(&mut runs, &mut cur, color, italic);
+                            runs.push(RichRun { text: String::new(), color, italic, split: true });
+                        }
+                        _ => {
+                            cur.push(c);
+                        }
+                    }
+                    i += tag_end + 1;
+                    if tag == "img" {
+                        // skip to the closing [/img]
+                        if let Some(end) = text[i..].find("[/img]") {
+                            i += end + 6;
+                        }
+                    }
+                    continue;
+                }
+                cur.push(c);
+                i += 1;
+            }
+            '【' | '『' => {
+                let closing = if c == '【' { '】' } else { '』' };
+                push(&mut runs, &mut cur, color, italic);
+                cur.push(c); // opening bracket, white
+                i += c.len_utf8();
+                loop {
+                    if i >= bytes.len() {
+                        break;
+                    }
+                    let sub = &text[i..];
+                    let ch = sub.chars().next().unwrap();
+                    if ch == closing {
+                        break;
+                    }
+                    // digits and underscores stay white inside the brackets
+                    let hc = if ch == '_' || "0123456789".contains(ch) {
+                        BODY
+                    } else {
+                        KEYWORD_YELLOW
+                    };
+                    push(&mut runs, &mut cur, color, italic);
+                    color = hc;
+                    cur.push(ch);
+                    i += ch.len_utf8();
+                }
+                push(&mut runs, &mut cur, color, italic);
+                color = BODY;
+                // closing bracket, white
+                cur.push(closing);
+                i += closing.len_utf8();
+            }
+            _ => {
+                cur.push(c);
+                i += c.len_utf8();
+            }
+        }
+    }
+    push(&mut runs, &mut cur, color, italic);
+    runs
 }
 
 /// Alpha-blend a single color onto an RGBA pixel.
@@ -444,7 +907,61 @@ fn composite_tint(
 
 #[cfg(test)]
 mod tests {
-    use super::number_pair_kern;
+    use super::{number_pair_kern, parse_rich, BODY, KEYWORD_GOLD, KEYWORD_YELLOW};
+
+    #[test]
+    fn rich_parse_basic() {
+        // plain text stays white
+        let runs = parse_rich("普通文本");
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].text, "普通文本");
+        assert_eq!(runs[0].color, BODY);
+    }
+
+    #[test]
+    fn rich_parse_bold_and_italic() {
+        let runs = parse_rich("前[b]金色[/b]后[i]斜体[/i]");
+        let mut it = runs.into_iter();
+        let r1 = it.next().unwrap();
+        assert_eq!(r1.text, "前");
+        let r2 = it.next().unwrap();
+        assert_eq!((r2.text.as_str(), r2.color), ("金色", KEYWORD_GOLD));
+        let r3 = it.next().unwrap();
+        assert_eq!(r3.text, "后");
+        let r4 = it.next().unwrap();
+        assert_eq!(r4.text, "斜体");
+        assert!(r4.italic);
+    }
+
+    #[test]
+    fn rich_parse_brackets() {
+        let runs = parse_rich("【守护】");
+        assert_eq!(runs.len(), 3);
+        assert_eq!(runs[0].text, "【");
+        assert_eq!(runs[0].color, BODY);
+        assert_eq!(runs[1].text, "守护");
+        assert_eq!(runs[1].color, KEYWORD_YELLOW);
+        assert_eq!(runs[2].text, "】");
+        assert_eq!(runs[2].color, BODY);
+    }
+
+    #[test]
+    fn rich_parse_bracket_digits_stay_white() {
+        // digits + underscore inside brackets stay white, so everything merges
+        // into one white run.
+        let runs = parse_rich("『12_』");
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].text, "『12_』");
+        assert_eq!(runs[0].color, BODY);
+    }
+
+    #[test]
+    fn rich_parse_img_split() {
+        let runs = parse_rich("甲[img]res://x.png[/img]乙");
+        assert_eq!(runs.len(), 3);
+        assert!(runs[1].split);
+        assert_eq!(runs[2].text, "乙");
+    }
 
     #[test]
     fn number_pair_kerning_table() {

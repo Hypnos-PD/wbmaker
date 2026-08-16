@@ -1,16 +1,25 @@
 # wbmaker — 网页端《影之诗：超凡世界》制卡器
 
-基于 **Rust → WebAssembly** 的卡牌制作工具：前端是纯静态 HTML/CSS/JS，卡图渲染核心（立绘裁切 + 官方边框 + 职业图标 + 全部文字）由 Rust 编译成 wasm 完成。
+基于 **Rust → WebAssembly** 的卡牌制作工具：前端是纯静态 HTML/CSS/JS，卡图渲染核心（立绘裁切 + 边框 + 职业图标 + 全部文字）由 Rust 编译成 wasm 完成。页面提供 **官方卡 / DIY 卡** 两种产物切换，共享的卡牌信息（卡名、职业、种类、稀有度、费用、攻防、立绘）在切换中保留。
 
 ## 功能
 
-- **官方 WB 卡框**：沿用 WBArts / wbunpacker 的 `frame2d_*.png` 边框（随从/护符/法术 × 铜/银/金/虹，外加 `style_101`、`high_premium` 等特殊框）。
+### 官方 WB 卡（默认模式）
+
+- **官方 WB 卡框**：沿用 WBArts / wbunpacker 的 `frame2d_*.png` 边框（随从/护符/法术 × 铜/银/金/虹，外加 `style_101` 等特殊框）。
 - **权威版式**：渲染坐标与 `wbunpacker/config/render.toml` 一致（782×1024 画布）。
-- **文字**：卡名（魏碑 `dfweibeiw7-gb.ttc`）+ 数字（`Junicode-Bold.ttf`），白字黑投影、超宽自动缩小。
-- **正文关键词高亮**：`【关键词】`、`『关键词』`、`[b]关键词[/b]` 显示为金色；`_数字` 保持白色。
-- **完整字段**：正文 / 第二段正文 / 进化 / 超进化 / 纹章 / 画师 / DIY 作者 / 正文底透明度 / 字号。
-- **立绘上传**：任意 PNG/JPG/WebP，浏览器转码后弹裁切面板（滚轮缩放 + 拖拽平移，`590:711` 取景框），归一化裁切矩形交给 wasm 在原图分辨率下裁切。
+- **文字**：卡名 + 数字，白字黑投影、超宽自动缩小。
 - **导出**：PNG（1x/2x/3x）。
+
+### BYD-DIY 卡（DIY 模式，素材与版式移植自「欧丝的印卡机」sv-byd-diy）
+
+- 1920×1080 产物：顶部称号带 + 左侧卡牌 + 右侧描述面板，黑底导出（1x）。
+- 边框：随从/法术/护符 × 铜/银/金/虹/**异画**（peculiar，DIY 独有）。
+- 职业背景 2 代（BYD/一代暗色）、职业图标与宝石。
+- 五段文字：正文 / 第二段正文 / 进化 / 超进化 / 纹章，各自独立开关与字号；`[b]` 金色、`[i]` 斜体、`【】『』` 黄色关键词、`[img]` 转分隔线。
+- 纹章区：名称、边框 4 选 1（纹章/信仰/激奏/结晶）、名称区域缩放、两枚纹章图标（14 个内置 + 本地上传）。
+- 画师 / DIY 作者署名行、正文底透明度滑条。
+- 裁切取景框随模式切换（官方 590:711，DIY 464:560），归一化裁切矩形两种模式通用。
 
 ## 目录结构
 
@@ -18,20 +27,23 @@
 wbmaker/
 ├── Cargo.toml
 ├── src/
-│   ├── lib.rs      # wasm-bindgen 入口（render_card / list_frames / version）
-│   ├── card.rs     # CardConfig（serde）
-│   ├── render.rs   # 合成管线 + 版式常量
-│   └── text.rs     # ab_glyph 文字引擎（阴影/居中/换行/关键词高亮）
-├── assets/         # 从 WBArts 复制的边框/图标/字体（编译时内嵌进 wasm）
-│   ├── frames/
-│   ├── icons/
-│   └── fonts/
+│   ├── lib.rs      # wasm-bindgen 入口（render_card / render_diy_card / list_frames / list_diy_crests）
+│   ├── card.rs     # CardConfig（serde），含共享字段与 DIY 专属字段
+│   ├── render.rs   # 官方卡合成管线 + 版式常量
+│   ├── diy.rs      # BYD-DIY 合成管线（1920×1080）+ 内嵌素材表
+│   └── text.rs     # ab_glyph 文字引擎（阴影/居中/换行/富文本/斜体/数字辉光）
+├── assets/         # 编译时内嵌进 wasm
+│   ├── frames/ icons/ fonts/   # 官方卡素材与字体（运行时加载）
+│   └── diy/        # DIY 素材（预处理压缩后内嵌：边框/背景/图标/纹章）
+├── tools/prep_diy_assets.py   # DIY 素材预处理脚本（从 sv-byd-diy 复制+压缩）
 └── web/
-    ├── index.html
-    ├── style.css
-    ├── app.js       # UI 逻辑 + wasm 调用
+    ├── index.html  # 双模式面板 + 切换按钮
+    ├── style.css / topbar.css
+    ├── app.js      # UI 逻辑 + wasm 调用
+    ├── crests/     # 内置纹章缩略图（选择器用）
+    ├── fonts/      # 运行时加载的字体（gitignore，build.sh 复制）
     ├── test-node.mjs
-    └── pkg/         # 构建产物（wasm + js 胶水）
+    └── pkg/        # 构建产物（wasm + js 胶水）
 ```
 
 ## 构建
@@ -63,25 +75,17 @@ python3 -m http.server -d web 8000
 
 ```bash
 cd web && node test-node.mjs
-# 生成 /tmp/wbmaker_test.png
+# 生成 /tmp/wbmaker_wb.png（官方卡）与 /tmp/wbmaker_diy.png（DIY 卡）
 ```
 
-## 字体与数字
+## 字体
 
-制卡器使用从游戏本地安装包 `ShadowverseWB_Data/data.unity3d`（Steam，非 CDN）解包得到的**真实字体**，**每种语言一套**（卡名 + 正文）：
+- **卡名/正文**：按语言从游戏本地安装包 `ShadowverseWB_Data/data.unity3d`（Steam，非 CDN）解包得到的矢量字体：简中 `arweibeigbpro_bd.otf`、繁中 `DFT_W7-930.ttf`、日文 `MOC-KaiminTsuki-B.otf`、韩文 `NanumGothic-ExtraBold.ttf`、英文 `MOC-KaiminTsuki-B.otf`。DIY 模式的正文复用各语言标题字体。
+- **数字**（费用/攻击/体力）：全语言统一用筑紫明朝数字 `FOT-TsukuAOldMin-Pr6-E.digits.otf`。
+- 字体为**运行时按需加载**（浏览器 fetch `web/fonts/` 后注册给 wasm），不占 wasm 体积；DIY 素材预处理压缩后内嵌进 wasm。
 
-| 语言 | 卡名/标题字体 | 正文字体 |
-|------|--------------|---------|
-| 简中 chs | 文鼎粗魏碑体GBPro `arweibeigbpro_bd.otf` | Noto Sans CJK SC |
-| 繁中 cht | 華康魏碑體 `DFT_W7-930.ttf` | Noto Sans CJK TC |
-| 日文 jpn | 解ミン 月 B `MOC-KaiminTsuki-B.otf` | Noto Sans CJK JP |
-| 韩文 kor | 나눔고딕 `NanumGothic-ExtraBold.ttf` | NanumGothic |
-| 英文 eng | Noto Sans CJK JP | Noto Sans CJK JP |
+## 与「欧丝的印卡机」的关系
 
-- **数字**（费用/攻击/体力）：全语言统一用明朝体 `MOC-KaiminTsuki-B.otf`（对应游戏里的筑紫明朝/HG明朝E SDF 数字），白字+投影，字号 106 可调。
-- 字体为**运行时按需加载**（浏览器 fetch `web/fonts/` 后注册给 wasm），wasm 本体只有 ~2.5MB。
-- 每个字体会对缺的字自动回退到该语言的正文 Noto 字体（覆盖完整 CJK）。
+DIY 模式的版式与素材移植自 sv-byd-diy（Godot 项目），并按 wbm 的权威口径修正了若干问题（英文卡名改用 MOC-KaiminTsuki-B、数字改用筑紫明朝、正文不再用魏碑、清理 `brone` 拼写与失效逻辑）。两端的卡牌字段一一对应，但暂不互通数据文件。
 
-> 游戏里的 SDF 字体（筑紫明朝、HG明朝E、Rodin）只有预光栅化图集；矢量源字体在本地 `data.unity3d`（上述 8 个）。数字用明朝矢量字体直接光栅化，比"SDF 图集放大"清晰。
-
-> [Cygames](https://www.cygames.co.jp/) 保留游戏内所有图像、音频及商标版权。本工具为非官方粉丝用途，边框/图标/字体素材来自游戏客户端解包。
+> [Cygames](https://www.cygames.co.jp/) 保留游戏内所有图像、音频及商标版权。本工具为非官方粉丝用途，边框/图标/字体素材来自游戏客户端解包；DIY 风格素材来自「欧丝的印卡机」。

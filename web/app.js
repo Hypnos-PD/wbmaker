@@ -1,7 +1,19 @@
-import init, { render_card, register_font, version } from './pkg/wbmaker.js';
+import init, { render_card, render_diy_card, register_font, version, list_diy_crests } from './pkg/wbmaker.js';
 
 let artBytes = null; // PNG bytes of uploaded art (full resolution)
 let cropState = null; // normalized crop rect {x,y,w,h} applied at render time
+
+let currentStyle = localStorage.getItem("style") === "diy" ? "diy" : "wb"; // 'wb' | 'diy'
+let crest1Bytes = null; // uploaded crest icon 1 (PNG bytes)
+let crest2Bytes = null; // uploaded crest icon 2 (PNG bytes)
+let crestSpec1 = "builtin:0"; // '', 'builtin:<n>' or 'upload'
+let crestSpec2 = "builtin:0";
+let builtinCrests = []; // names from the wasm (index order = builtin:<n>)
+let nameOffset = 0; // DIY card-name font size offset (±2 steps)
+
+// Per-section font sizes in the BYD-DIY tool's unit (81 @ 0.4 scale = 32.4 px).
+const DIY_SIZES = { d1: 81, d2: 81, ev: 81, super: 81, cre: 81 };
+const SIZE_MIN = 30, SIZE_MAX = 200;
 
 const KIND_KEYS = { 1: 'follower', 2: 'amulet', 3: 'spell' };
 const RARITY_KEYS = { 1: 'bronze', 2: 'silver', 3: 'gold', 4: 'legend' };
@@ -71,6 +83,14 @@ const UI = {
     normal: "普通", langTitle: "切换语言 / Language",
     cropTitle: "裁切立绘", cropHint: "滚轮缩放 · 拖拽平移",
     cropZoomIn: "放大", cropZoomOut: "缩小", cropReset: "复位", cropCancel: "取消", cropConfirm: "确认",
+    styleWb: "官方卡", styleDiy: "DIY 卡",
+    diyPanel: "DIY 面板", trait: "兵种类型", traitTitle: "类型", bgType: "一代暗色背景", bgAlpha: "正文底透明度",
+    detail1: "正文", detail2: "第二段正文", evolve: "进化", super: "超进化", crest: "纹章",
+    crestName: "纹章名称", crestBorder: "纹章边框", crestScale: "名称区域缩放",
+    crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
+    illustrator: "画师", diyAuthor: "DIY 作者", peculiar: "异画",
+    keywordBtn: "[b]关键词[/b]", nameSize: "卡名字号",
+    crestBorder0: "纹章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "结晶",
   },
   eng: {
     brand: "Card Maker", backToWba: "Back to WBA",
@@ -85,6 +105,14 @@ const UI = {
     normal: "Normal", langTitle: "Switch language / 语言",
     cropTitle: "Crop Art", cropHint: "Scroll to zoom · Drag to pan",
     cropZoomIn: "Zoom In", cropZoomOut: "Zoom Out", cropReset: "Reset", cropCancel: "Cancel", cropConfirm: "Apply",
+    styleWb: "Official", styleDiy: "DIY Card",
+    diyPanel: "DIY Panel", trait: "Trait", traitTitle: "Type", bgType: "OG Background", bgAlpha: "Text Box Opacity",
+    detail1: "Skill Text", detail2: "Second Skill Text", evolve: "Evolve", super: "Super Evolve", crest: "Crest",
+    crestName: "Crest Name", crestBorder: "Crest Border", crestScale: "Name Area Scale",
+    crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
+    illustrator: "Illustrator", diyAuthor: "DIY Author", peculiar: "Alter Art",
+    keywordBtn: "[b]keyword[/b]", nameSize: "Name size",
+    crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
   jpn: {
     brand: "カードメーカー", backToWba: "WBAに戻る",
@@ -99,6 +127,14 @@ const UI = {
     normal: "通常", langTitle: "言語切替 / Language",
     cropTitle: "イラストをトリミング", cropHint: "ホイールで拡大縮小 · ドラッグで移動",
     cropZoomIn: "拡大", cropZoomOut: "縮小", cropReset: "リセット", cropCancel: "キャンセル", cropConfirm: "確定",
+    styleWb: "公式カード", styleDiy: "DIY カード",
+    diyPanel: "DIY パネル", trait: "兵種タイプ", traitTitle: "タイプ", bgType: "初代背景", bgAlpha: "テキスト背景の透明度",
+    detail1: "効果テキスト", detail2: "第二効果テキスト", evolve: "進化", super: "超進化", crest: "紋章",
+    crestName: "紋章名", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
+    crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
+    illustrator: "イラストレーター", diyAuthor: "DIY 作者", peculiar: "異画",
+    keywordBtn: "[b]キーワード[/b]", nameSize: "カード名サイズ",
+    crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
   kor: {
     brand: "카드 메이커", backToWba: "WBA로 돌아가기",
@@ -113,6 +149,14 @@ const UI = {
     normal: "일반", langTitle: "언어 전환 / Language",
     cropTitle: "일러스트 자르기", cropHint: "휠로 확대/축소 · 드래그로 이동",
     cropZoomIn: "확대", cropZoomOut: "축소", cropReset: "초기화", cropCancel: "취소", cropConfirm: "확인",
+    styleWb: "공식 카드", styleDiy: "DIY 카드",
+    diyPanel: "DIY 패널", trait: "병종", traitTitle: "타입", bgType: "1세대 배경", bgAlpha: "텍스트 배경 투명도",
+    detail1: "효과 텍스트", detail2: "두 번째 효과 텍스트", evolve: "진화", super: "초진화", crest: "문장",
+    crestName: "문장 이름", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
+    crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
+    illustrator: "일러스트레이터", diyAuthor: "DIY 제작자", peculiar: "얼터 아트",
+    keywordBtn: "[b]키워드[/b]", nameSize: "카드 이름 크기",
+    crestBorder0: "문장", crestBorder1: "신앙", crestBorder2: "가속", crestBorder3: "결정",
   },
   cht: {
     brand: "製卡器", backToWba: "返回 WBA",
@@ -127,6 +171,14 @@ const UI = {
     normal: "普通", langTitle: "切換語言 / Language",
     cropTitle: "裁切立繪", cropHint: "滾輪縮放 · 拖曳平移",
     cropZoomIn: "放大", cropZoomOut: "縮小", cropReset: "復位", cropCancel: "取消", cropConfirm: "確認",
+    styleWb: "官方卡", styleDiy: "DIY 卡",
+    diyPanel: "DIY 面板", trait: "兵種類型", traitTitle: "類型", bgType: "一代暗色背景", bgAlpha: "正文底透明度",
+    detail1: "正文", detail2: "第二段正文", evolve: "進化", super: "超進化", crest: "紋章",
+    crestName: "紋章名稱", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
+    crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
+    illustrator: "畫師", diyAuthor: "DIY 作者", peculiar: "異畫",
+    keywordBtn: "[b]關鍵詞[/b]", nameSize: "卡名字號",
+    crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
 };
 
@@ -207,23 +259,94 @@ const form = () => document.getElementById('cardForm');
 
 function field(name) { return form().elements[name]; }
 
+function isDiy() { return currentStyle === "diy"; }
+
+// ---- style switching (official WB card <-> BYD-DIY card) ----
+
+function applyStyleUI() {
+  const diy = isDiy();
+  document.getElementById('btnStyleWb').classList.toggle('active', !diy);
+  document.getElementById('btnStyleDiy').classList.toggle('active', diy);
+  document.querySelectorAll('.wb-only').forEach((el) => { el.style.display = diy ? 'none' : ''; });
+  document.querySelectorAll('.diy-only').forEach((el) => { el.hidden = !diy; });
+  rebuildRarity();
+  updateKindUI();
+}
+
+function setStyle(style) {
+  if (style !== "wb" && style !== "diy") return;
+  currentStyle = style;
+  localStorage.setItem("style", style);
+  applyStyleUI();
+  renderPreview();
+}
+
+function rebuildRarity() {
+  const rarity = field('rarity');
+  const cur = rarity.value;
+  const labels = RARITY_LABELS[currentLang];
+  let html = labels.map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
+  // Keep the 异画 option in the DOM so switching styles preserves the value;
+  // it is merely hidden in WB mode (rendered as legend there).
+  html += `<option value="5"${isDiy() ? '' : ' hidden'}>${t('peculiar')}</option>`;
+  rarity.innerHTML = html;
+  if (cur) rarity.value = cur;
+}
+
+// ---- config collection ----
+
 function collectConfig() {
   const kind = field('kind').value;
   const kindName = KIND_KEYS[kind] || 'follower';
-  const rarityName = RARITY_KEYS[field('rarity').value] || 'bronze';
+  const rarityName = RARITY_KEYS[field('rarity').value] || 'legend';
   const special = field('special').value;
   const frame = `${kindName}_${special || rarityName}`;
-  return {
+  const diy = isDiy();
+  const cfg = {
     name: field('name').value,
     language: currentLang,
     class: parseInt(field('class').value, 10) || 0,
     kind: parseInt(kind, 10) || 1,
-    rarity: parseInt(field('rarity').value, 10) || 1,
+    rarity: isDiy() ? (parseInt(field('rarity').value, 10) || 1) : Math.min(parseInt(field('rarity').value, 10) || 1, 4),
     frame,
     cost: field('cost').value,
     atk: field('atk').value,
     life: field('life').value,
+    style: diy ? 'diy' : 'wb',
+    // DIY-only fields (preserved when switching back and forth)
+    bg_type: field('bgType').checked ? 1 : 2,
+    trait_text: field('trait') ? field('trait').value : '',
+    class_title: t('classLabel'),
+    type_title: t('traitTitle'),
+    class_text: CLASS_LABELS[currentLang][parseInt(field('class').value, 10) || 0] || '',
+    crest_border: parseInt(field('crestBorder').value, 10) || 0,
+    crest_scale: parseFloat(field('crestScale').value) || 1.0,
+    name_size_offset: nameOffset,
+    d1_size: DIY_SIZES.d1 * 0.4,
+    d2_size: DIY_SIZES.d2 * 0.4,
+    ev_size: DIY_SIZES.ev * 0.4,
+    super_size: DIY_SIZES.super * 0.4,
+    crest_size: DIY_SIZES.cre * 0.4,
+    crest_icon1: crestSpec1,
+    crest_icon2: crestSpec2,
+    show_crest_icon2: field('showCrestIcon2').checked,
+    detail1: field('d1').value,
+    detail2: field('d2').value,
+    evolve: field('ev').value,
+    super_evolve: field('super').value,
+    crest: field('cre').value,
+    crest_name: field('crestName').value,
+    illustrator: field('illustrator').value,
+    diy: field('diy').value,
+    show_detail2: field('showDetail2').checked,
+    show_evolve: field('showEvolve').checked,
+    show_super: field('showSuper').checked,
+    show_crest: field('showCrest').checked,
+    show_illustrator: field('showIllustrator').checked,
+    show_diy: field('showDiy').checked,
+    bg_alpha: (parseFloat(field('bgAlpha').value) || 0) / 100,
   };
+  return cfg;
 }
 
 // Render-time config: base fields plus the current crop rect (never exported).
@@ -234,6 +357,11 @@ function buildRenderConfig() {
 }
 
 function renderCard(config, art) {
+  if (isDiy()) {
+    const c1 = crestSpec1 === 'upload' ? (crest1Bytes || new Uint8Array(0)) : new Uint8Array(0);
+    const c2 = crestSpec2 === 'upload' ? (crest2Bytes || new Uint8Array(0)) : new Uint8Array(0);
+    return render_diy_card(JSON.stringify(config), art || new Uint8Array(0), c1, c2);
+  }
   return render_card(JSON.stringify(config), art || new Uint8Array(0));
 }
 
@@ -308,6 +436,7 @@ async function loadDefaultCard() {
   field('atk').value = DEFAULT_CARD.atk;
   field('life').value = DEFAULT_CARD.life;
   updateKindUI();
+  rebuildRarity();
 
   // Load the default card art (falls back to no art if the file is missing).
   try {
@@ -325,6 +454,30 @@ async function loadDefaultCard() {
   }
 }
 
+function resetDiyFields() {
+  ['d1', 'd2', 'ev', 'super', 'cre', 'crestName', 'trait', 'illustrator', 'diy'].forEach((n) => {
+    field(n).value = '';
+  });
+  ['showDetail2', 'showEvolve', 'showSuper', 'showCrest', 'showIllustrator', 'showDiy', 'showCrestIcon2', 'bgType'].forEach((n) => {
+    field(n).checked = false;
+  });
+  field('bgAlpha').value = '30';
+  field('crestScale').value = '1.0';
+  field('crestBorder').value = '0';
+  for (const k of Object.keys(DIY_SIZES)) DIY_SIZES[k] = 81;
+  refreshSizeLabels();
+  crestSpec1 = 'builtin:0';
+  crestSpec2 = 'builtin:0';
+  crest1Bytes = null;
+  crest2Bytes = null;
+  nameOffset = 0;
+  document.querySelectorAll('[data-crest-upload]').forEach((inp) => {
+    inp.value = '';
+    inp.closest('label').querySelector('span').textContent = t('uploadCrest');
+  });
+  markCrestSelection();
+}
+
 // ---- i18n: translate static labels & rebuild translated selects ----
 
 function rebuildSelects() {
@@ -340,12 +493,7 @@ function rebuildSelects() {
     kind.innerHTML = KIND_LABELS[currentLang].map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
     kind.value = cur;
   }
-  const rarity = document.getElementById('rarity');
-  if (rarity) {
-    const cur = rarity.value;
-    rarity.innerHTML = RARITY_LABELS[currentLang].map((name, i) => `<option value="${i + 1}">${name}</option>`).join('');
-    rarity.value = cur;
-  }
+  rebuildRarity();
   updateKindUI();
 }
 
@@ -355,6 +503,9 @@ function applyI18n() {
   });
   document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
     el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
   });
   rebuildSelects();
 }
@@ -408,6 +559,20 @@ function switchLang(lang) {
   renderPreview();
 }
 
+// ---- image upload / crop ----
+
+async function fileToPng(file) {
+  const bmp = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bmp, 0, 0);
+  bmp.close();
+  const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
 async function handleArtFile(file) {
   if (!file) {
     artBytes = null;
@@ -417,15 +582,7 @@ async function handleArtFile(file) {
     return;
   }
   try {
-    const bmp = await createImageBitmap(file);
-    const canvas = document.createElement('canvas');
-    canvas.width = bmp.width;
-    canvas.height = bmp.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(bmp, 0, 0);
-    bmp.close();
-    const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
-    const buf = new Uint8Array(await blob.arrayBuffer());
+    const buf = await fileToPng(file);
     const crop = await openCropPanel(buf);
     if (!crop) return; // cancelled — keep the previous art
     artBytes = buf;
@@ -437,7 +594,7 @@ async function handleArtFile(file) {
   }
 }
 
-// ---- Crop panel (one-shot: zoom + pan over a fixed 590:711 viewport) ----
+// ---- Crop panel (one-shot: zoom + pan; aspect follows the current style) ----
 
 const cropView = {
   iw: 0, ih: 0,   // image natural size (px)
@@ -509,6 +666,9 @@ function openCropPanel(pngBytes) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('cropOverlay');
     const img = cropImageEl();
+    const viewport = cropViewportEl();
+    // window ratio per style: WB 590:711, DIY 464:560
+    viewport.style.aspectRatio = isDiy() ? '464 / 560' : '590 / 711';
     const url = URL.createObjectURL(new Blob([pngBytes], { type: 'image/png' }));
     cropView.url = url;
     cropView.resolve = resolve;
@@ -521,7 +681,6 @@ function openCropPanel(pngBytes) {
       // (a hidden element reports clientWidth/clientHeight == 0, which would
       // zero the scale and make the crop a NaN).
       overlay.hidden = false;
-      const viewport = cropViewportEl();
       cropView.vw = viewport.clientWidth;
       cropView.vh = viewport.clientHeight;
       cropView.k0 = Math.max(cropView.vw / cropView.iw, cropView.vh / cropView.ih);
@@ -583,6 +742,106 @@ function bindCropPanel() {
   });
 }
 
+// ---- DIY helpers: font sizes, keyword buttons, crest icons ----
+
+function refreshSizeLabels() {
+  for (const [k, v] of Object.entries(DIY_SIZES)) {
+    const el = document.getElementById(`${k}Size`);
+    if (el) el.textContent = String(v);
+  }
+}
+
+function changeSize(key, delta) {
+  DIY_SIZES[key] = Math.min(SIZE_MAX, Math.max(SIZE_MIN, DIY_SIZES[key] + delta));
+  refreshSizeLabels();
+}
+
+function insertAtCaret(textarea, tag) {
+  const s = textarea.selectionStart ?? textarea.value.length;
+  const e = textarea.selectionEnd ?? s;
+  textarea.value = textarea.value.slice(0, s) + tag + textarea.value.slice(e);
+  const caret = s + tag.length - 4; // between [b] and [/b]
+  textarea.focus();
+  textarea.setSelectionRange(caret, caret);
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// Built-in crest icon picker (thumbnails served from web/crests/).
+function buildCrestGrids() {
+  document.querySelectorAll('[data-crest-grid]').forEach((grid) => {
+    const slot = grid.getAttribute('data-crest-grid');
+    grid.innerHTML = '';
+    builtinCrests.forEach((name, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'crest-cell';
+      btn.dataset.spec = `builtin:${idx}`;
+      btn.dataset.slot = slot;
+      const img = document.createElement('img');
+      img.src = `crests/${name}.png`;
+      img.alt = String(idx);
+      img.loading = 'lazy';
+      btn.appendChild(img);
+      btn.title = `${idx}: ${name}`;
+      btn.addEventListener('click', () => {
+        if (slot === '1') crestSpec1 = btn.dataset.spec;
+        else crestSpec2 = btn.dataset.spec;
+        // clear the upload label (uploaded bytes no longer used)
+        const upload = document.querySelector(`[data-crest-upload="${slot}"]`);
+        if (upload) {
+          upload.value = '';
+          upload.closest('label').querySelector('span').textContent = t('uploadCrest');
+        }
+        markCrestSelection();
+        renderPreview();
+      });
+      grid.appendChild(btn);
+    });
+  });
+}
+
+function markCrestSelection() {
+  document.querySelectorAll('.crest-cell').forEach((cell) => {
+    const spec = cell.dataset.slot === '1' ? crestSpec1 : crestSpec2;
+    cell.classList.toggle('active', cell.dataset.spec === spec);
+  });
+}
+
+function bindDiyControls() {
+  document.getElementById('btnNameUp').addEventListener('click', () => { nameOffset += 2; renderPreview(); });
+  document.getElementById('btnNameDown').addEventListener('click', () => { nameOffset -= 2; renderPreview(); });
+  document.querySelectorAll('[data-size-up]').forEach((btn) => {
+    btn.addEventListener('click', () => { changeSize(btn.dataset.sizeUp, 2); renderPreview(); });
+  });
+  document.querySelectorAll('[data-size-down]').forEach((btn) => {
+    btn.addEventListener('click', () => { changeSize(btn.dataset.sizeDown, -2); renderPreview(); });
+  });
+  document.querySelectorAll('[data-keyword]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      insertAtCaret(field(btn.dataset.keyword), '[b][/b]');
+    });
+  });
+  document.querySelectorAll('[data-crest-upload]').forEach((inp) => {
+    inp.addEventListener('change', async (e) => {
+      const slot = inp.dataset.crestUpload;
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const buf = await fileToPng(file);
+        if (slot === '1') { crest1Bytes = buf; crestSpec1 = 'upload'; }
+        else { crest2Bytes = buf; crestSpec2 = 'upload'; }
+        inp.closest('label').querySelector('span').textContent = file.name;
+        markCrestSelection();
+        renderPreview();
+      } catch (err) {
+        alert(t('imageReadFailed') + err.message);
+      }
+    });
+  });
+}
+
+// ---- events ----
+
 function bindEvents() {
   let debounceTimer = null;
   const scheduleRender = () => {
@@ -597,6 +856,9 @@ function bindEvents() {
     scheduleRender();
   });
 
+  document.getElementById('btnStyleWb').addEventListener('click', () => setStyle('wb'));
+  document.getElementById('btnStyleDiy').addEventListener('click', () => setStyle('diy'));
+
   document.getElementById('artInput').addEventListener('change', (e) => {
     handleArtFile(e.target.files[0]);
   });
@@ -606,11 +868,13 @@ function bindEvents() {
     artBytes = null;
     cropState = null;
     document.getElementById('artInput').value = '';
+    resetDiyFields();
     await loadDefaultCard();
     renderPreview();
   });
 
   bindCropPanel();
+  bindDiyControls();
 
   // Keep the shared language setting in sync across tabs.
   window.addEventListener('storage', (e) => {
@@ -629,14 +893,18 @@ async function main() {
   document.documentElement.lang = LANG_HTML[currentLang] || 'zh-CN';
   buildLangDropdown();
   updateLangUI();
+  applyStyleUI();
   const cardPromise = loadDefaultCard();
   try {
     await init();
     const ver = document.getElementById('ver');
     if (ver) ver.textContent = 'v' + version();
+    builtinCrests = JSON.parse(list_diy_crests() || '[]');
   } catch (e) {
     console.error(e);
   }
+  buildCrestGrids();
+  markCrestSelection();
   await cardPromise;
   registerFonts(currentLang, await fontDownload);
   bindEvents();

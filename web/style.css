@@ -195,3 +195,107 @@ label.file input { display: none; }
   gap: 8px;
 }
 .crop-spacer { flex: 1; }
+
+/* ---- style toggle (topbar) ---- */
+
+.style-toggle {
+  display: inline-flex;
+  border: 2px solid var(--border);
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--border);
+  margin-right: 10px;
+}
+.style-btn {
+  background: #fff;
+  color: var(--text);
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  font-family: inherit;
+}
+.style-btn + .style-btn { border-left: 2px solid var(--border); }
+.style-btn:hover { background: #f0f0f0; }
+.style-btn.active { background: var(--accent); color: var(--border); }
+
+/* ---- DIY panel ---- */
+
+.sub { margin: 12px 0; border-top: 2px dashed var(--border); padding-top: 10px; }
+.sub-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+}
+.sub-head .tool { display: inline-flex; align-items: center; gap: 4px; }
+.sub-head .size-val {
+  display: inline-block;
+  min-width: 2em;
+  text-align: center;
+  color: var(--text);
+  font-weight: 900;
+}
+.mini {
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 2px 7px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  font-family: inherit;
+}
+.mini:hover { background: var(--accent); }
+
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+label.check input { accent-color: var(--accent); }
+
+label > input[type=range] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+
+.crest-inline { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }
+.crest-inline > span { margin-top: 0; }
+
+.crest-picker { margin: 8px 0; }
+.crest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.crest-cell {
+  padding: 2px;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crest-cell img { width: 100%; height: 100%; object-fit: contain; }
+.crest-cell:hover { border-color: var(--accent); }
+.crest-cell.active { background: var(--accent); }
+
+label.file.small {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+#cardNameTool { margin-left: 6px; }

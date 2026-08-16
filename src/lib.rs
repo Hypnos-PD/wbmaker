@@ -5,6 +5,7 @@
 //! JSON config and optional PNG art bytes and returns a PNG of the card.
 
 mod card;
+mod diy;
 mod render;
 mod text;
 
@@ -64,6 +65,30 @@ pub fn list_frames() -> String {
 #[wasm_bindgen]
 pub fn version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Render a BYD-DIY (欧丝的印卡机) style product image: 1920x1080 PNG.
+/// `crest1_png` / `crest2_png` are user-uploaded crest icons (PNG/JPEG/WebP
+/// bytes, may be empty; built-in icons are selected via the config instead).
+#[wasm_bindgen]
+pub fn render_diy_card(
+    config_json: &str,
+    art_png: &[u8],
+    crest1_png: &[u8],
+    crest2_png: &[u8],
+) -> Result<Vec<u8>, JsValue> {
+    let config: card::CardConfig = serde_json::from_str(config_json)
+        .map_err(|e| JsValue::from_str(&format!("config parse error: {e}")))?;
+    let art = if art_png.is_empty() { None } else { Some(art_png) };
+    let c1 = if crest1_png.is_empty() { None } else { Some(crest1_png) };
+    let c2 = if crest2_png.is_empty() { None } else { Some(crest2_png) };
+    diy::render_diy(&config, art, c1, c2).map_err(|e| JsValue::from_str(&e))
+}
+
+/// Built-in crest icon names (JSON array), index order matches `builtin:<n>`.
+#[wasm_bindgen]
+pub fn list_diy_crests() -> String {
+    serde_json::to_string(&diy::CREST_BUILTIN).unwrap_or_else(|_| "[]".to_string())
 }
 
 #[cfg(test)]

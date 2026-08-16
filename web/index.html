@@ -14,6 +14,10 @@
       <a class="topbar-logo" href="/">WB <span data-i18n="brand">制卡器</span></a>
       <a class="top-action" href="/" data-i18n="backToWba">返回 WBA</a>
       <div class="topbar-spacer"></div>
+      <div class="style-toggle" role="group" aria-label="card style">
+        <button class="style-btn active" id="btnStyleWb" type="button" data-i18n="styleWb">官方卡</button>
+        <button class="style-btn" id="btnStyleDiy" type="button" data-i18n="styleDiy">DIY 卡</button>
+      </div>
       <button class="top-action" id="btnReset" type="button" data-i18n="reset">重置</button>
       <div class="dd-wrap" id="langDropdown"></div>
     </div>
@@ -21,10 +25,14 @@
 
   <main class="layout">
     <form id="cardForm" class="panel form" autocomplete="off">
-      <!-- 基础 -->
+      <!-- 基础（两种模式共享） -->
       <section>
         <h2 data-i18n="basicInfo">基础信息</h2>
         <label><span data-i18n="cardName">卡名</span>
+          <span class="tool">
+            <button type="button" class="mini" id="btnNameDown" data-i18n-title="nameSize" title="卡名字号">−</button>
+            <button type="button" class="mini" id="btnNameUp" data-i18n-title="nameSize" title="卡名字号">+</button>
+          </span>
           <input type="text" name="name" placeholder="卡牌名称" data-i18n-ph="cardNamePh">
         </label>
         <div class="row">
@@ -40,7 +48,7 @@
               <option value="7">超越者</option>
             </select>
           </label>
-          <label><span data-i18n="specialFrame">特殊框</span>
+          <label class="wb-only"><span data-i18n="specialFrame">特殊框</span>
             <select name="special" id="special">
               <option value="">普通</option>
               <option value="style_101">style_101</option>
@@ -77,13 +85,131 @@
         </div>
       </section>
 
-      <!-- 立绘 -->
+      <!-- 立绘（共享） -->
       <section>
         <h2 data-i18n="art">立绘</h2>
         <label class="file">
           <input type="file" name="art" id="artInput" accept="image/*">
           <span id="artLabel" data-i18n="artPh">选择图片（PNG/JPG/WebP）</span>
         </label>
+      </section>
+
+      <!-- DIY 专属面板 -->
+      <section id="diyPanel" class="diy-only" hidden>
+        <h2 data-i18n="diyPanel">DIY 面板</h2>
+
+        <label><span data-i18n="trait">兵种类型</span>
+          <input type="text" name="trait" placeholder="士兵 / 指挥官 …">
+        </label>
+        <label class="check"><input type="checkbox" name="bgType" id="bgType"> <span data-i18n="bgType">一代暗色背景</span></label>
+        <label><span data-i18n="bgAlpha">正文底透明度</span>
+          <input type="range" name="bgAlpha" id="bgAlpha" min="0" max="100" step="1" value="30">
+        </label>
+
+        <div class="sub" id="d1Block">
+          <div class="sub-head">
+            <span data-i18n="detail1">正文</span>
+            <span class="tool">
+              <button type="button" class="mini" data-keyword="d1" data-i18n-title="keywordBtn" title="[b]关键词[/b]">[b]</button>
+              <button type="button" class="mini" data-size-down="d1">−</button>
+              <span class="size-val" id="d1Size">81</span>
+              <button type="button" class="mini" data-size-up="d1">+</button>
+            </span>
+          </div>
+          <textarea name="d1" rows="3"></textarea>
+        </div>
+
+        <div class="sub" id="d2Block">
+          <div class="sub-head">
+            <span><input type="checkbox" name="showDetail2" id="showDetail2"> <span data-i18n="detail2">第二段正文</span></span>
+            <span class="tool">
+              <button type="button" class="mini" data-keyword="d2" data-i18n-title="keywordBtn" title="[b]关键词[/b]">[b]</button>
+              <button type="button" class="mini" data-size-down="d2">−</button>
+              <span class="size-val" id="d2Size">81</span>
+              <button type="button" class="mini" data-size-up="d2">+</button>
+            </span>
+          </div>
+          <textarea name="d2" rows="2"></textarea>
+        </div>
+
+        <div class="sub" id="evBlock">
+          <div class="sub-head">
+            <span><input type="checkbox" name="showEvolve" id="showEvolve"> <span data-i18n="evolve">进化</span></span>
+            <span class="tool">
+              <button type="button" class="mini" data-keyword="ev" data-i18n-title="keywordBtn" title="[b]关键词[/b]">[b]</button>
+              <button type="button" class="mini" data-size-down="ev">−</button>
+              <span class="size-val" id="evSize">81</span>
+              <button type="button" class="mini" data-size-up="ev">+</button>
+            </span>
+          </div>
+          <textarea name="ev" rows="2"></textarea>
+        </div>
+
+        <div class="sub" id="superBlock">
+          <div class="sub-head">
+            <span><input type="checkbox" name="showSuper" id="showSuper"> <span data-i18n="super">超进化</span></span>
+            <span class="tool">
+              <button type="button" class="mini" data-keyword="super" data-i18n-title="keywordBtn" title="[b]关键词[/b]">[b]</button>
+              <button type="button" class="mini" data-size-down="super">−</button>
+              <span class="size-val" id="superSize">81</span>
+              <button type="button" class="mini" data-size-up="super">+</button>
+            </span>
+          </div>
+          <textarea name="super" rows="2"></textarea>
+        </div>
+
+        <div class="sub" id="crestBlock">
+          <div class="sub-head">
+            <span><input type="checkbox" name="showCrest" id="showCrest"> <span data-i18n="crest">纹章</span></span>
+            <span class="tool">
+              <button type="button" class="mini" data-keyword="cre" data-i18n-title="keywordBtn" title="[b]关键词[/b]">[b]</button>
+              <button type="button" class="mini" data-size-down="cre">−</button>
+              <span class="size-val" id="creSize">81</span>
+              <button type="button" class="mini" data-size-up="cre">+</button>
+            </span>
+          </div>
+          <label class="crest-inline"><span data-i18n="crestName">纹章名称</span>
+            <input type="text" name="crestName">
+          </label>
+          <label class="crest-inline"><span data-i18n="crestBorder">纹章边框</span>
+            <select name="crestBorder" id="crestBorder">
+              <option value="0" data-i18n="crestBorder0">纹章</option>
+              <option value="1" data-i18n="crestBorder1">信仰</option>
+              <option value="2" data-i18n="crestBorder2">激奏</option>
+              <option value="3" data-i18n="crestBorder3">结晶</option>
+            </select>
+          </label>
+          <label><span data-i18n="crestScale">名称区域缩放</span>
+            <input type="range" name="crestScale" id="crestScale" min="0.1" max="1.5" step="0.1" value="1.0">
+          </label>
+          <div class="crest-picker" id="crest1Picker">
+            <div class="sub-head"><span data-i18n="crestIcon1">纹章图标 1</span>
+              <label class="file small"><input type="file" accept="image/*" data-crest-upload="1"> <span data-i18n="uploadCrest">上传</span></label>
+            </div>
+            <div class="crest-grid" data-crest-grid="1"></div>
+          </div>
+          <div class="crest-picker" id="crest2Picker">
+            <div class="sub-head"><span><input type="checkbox" name="showCrestIcon2" id="showCrestIcon2"> <span data-i18n="crestIcon2">纹章图标 2</span></span>
+              <label class="file small"><input type="file" accept="image/*" data-crest-upload="2"> <span data-i18n="uploadCrest">上传</span></label>
+            </div>
+            <div class="crest-grid" data-crest-grid="2"></div>
+          </div>
+          <textarea name="cre" rows="2"></textarea>
+        </div>
+
+        <div class="sub" id="illuBlock">
+          <div class="sub-head">
+            <span><input type="checkbox" name="showIllustrator" id="showIllustrator"> <span data-i18n="illustrator">画师</span></span>
+          </div>
+          <input type="text" name="illustrator" placeholder="画师名">
+        </div>
+
+        <div class="sub" id="diyBlock">
+          <div class="sub-head">
+            <span><input type="checkbox" name="showDiy" id="showDiy"> <span data-i18n="diyAuthor">DIY 作者</span></span>
+          </div>
+          <input type="text" name="diy" placeholder="DIY：作者名">
+        </div>
       </section>
     </form>
 
@@ -111,7 +237,7 @@
         <button id="cropZoomIn" class="btn" type="button" data-i18n="cropZoomIn">放大</button>
         <span class="crop-spacer"></span>
         <button id="cropCancel" class="btn" type="button" data-i18n="cropCancel">取消</button>
-        <button id="cropConfirm" class="btn primary" type="button" data-i18n="cropConfirm">确认</button>
+        <button id="cropConfirm" class="btn" type="button" data-i18n="cropConfirm">确认</button>
       </div>
     </div>
   </div>
