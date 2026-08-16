@@ -355,10 +355,16 @@ pub fn render_diy(
         TITLE_GOLD,
         0.0,
     );
+    // 兵种为空时默认显示 "-"（同 byd-diy 原版卡面）
+    let trait_display = if config.trait_text.trim().is_empty() {
+        "-"
+    } else {
+        &config.trait_text
+    };
     engine.draw_plain(
         &mut canvas,
         &engine.title,
-        &config.trait_text,
+        trait_display,
         TITLE_TYPE_X,
         TITLE_TYPE_Y,
         TITLE_SIDE_SIZE,
