@@ -157,12 +157,12 @@ const UI = {
     cropZoomIn: "拡大", cropZoomOut: "縮小", cropReset: "リセット", cropCancel: "キャンセル", cropConfirm: "確定",
     styleWb: "カード画像", styleDiy: "効果画像",
     diyPanel: "能力パネル", trait: "兵種タイプ", traitTitle: "タイプ", bgAlpha: "テキスト背景の透明度",
-    detail1: "効果テキスト", evolve: "進化", super: "超進化", crest: "紋章",
-    crestDesc: "紋章の説明", energy: "エネルギー", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
-    crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
+    detail1: "効果テキスト", evolve: "進化", super: "超進化", crest: "クレスト",
+    crestDesc: "クレストの説明", energy: "エネルギー", crestBorder: "クレスト枠", crestScale: "名称エリア拡大率",
+    crestIcon1: "クレストアイコン 1", crestIcon2: "クレストアイコン 2", uploadCrest: "アップロード",
     illustrator: "イラストレーター", diyAuthor: "脚注", illusTitle: "イラスト:",
-    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ 紋章を追加", crestIconNone: "なし", installApp: "📲 アプリとしてインストール", installHint: "このブラウザではワンクリックインストールできません。ブラウザのメニューから「ホーム画面に追加 / アプリをインストール」を選んでください。", nameSize: "カード名サイズ",
-    crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
+    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ クレストを追加", crestIconNone: "なし", installApp: "📲 アプリとしてインストール", installHint: "このブラウザではワンクリックインストールできません。ブラウザのメニューから「ホーム画面に追加 / アプリをインストール」を選んでください。", nameSize: "カード名サイズ",
+    crestBorder0: "クレスト", crestBorder1: "信仰", crestBorder2: "アクセラレート", crestBorder3: "結晶",
   },
   kor: {
     brand: "카드 메이커", backToWba: "WBA로 돌아가기",
@@ -206,7 +206,7 @@ const UI = {
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
     illustrator: "畫師", diyAuthor: "腳註", illusTitle: "畫師:",
     keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", crestIconNone: "無", installApp: "📲 安裝為應用", installHint: "此瀏覽器不支援一鍵安裝：請使用瀏覽器選單中的「加入主畫面 / 安裝應用程式」。", nameSize: "卡名字號",
-    crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
+    crestBorder0: "クレスト", crestBorder1: "信仰", crestBorder2: "アクセラレート", crestBorder3: "結晶",
   },
 };
 
