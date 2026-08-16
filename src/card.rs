@@ -101,8 +101,7 @@ pub struct CardConfig {
 /// 一个纹章块（能力面板可添加多个）
 #[derive(Deserialize, Clone, Default)]
 pub struct CrestBlock {
-    #[serde(default)]
-    pub name: String,
+    /// 纹章类型文字（渲染在图标之后）
     #[serde(default)]
     pub text: String,
     #[serde(default)]

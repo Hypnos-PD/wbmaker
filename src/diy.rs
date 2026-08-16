@@ -620,22 +620,21 @@ fn draw_split(
     }
 }
 
-/// Draw one crest block: banner band（名字优先、图标跟在名字后面）+ 描述文字。
-/// 名字与描述的首字与正文首字水平对齐（x = text_x）。返回块占用的总高度。
+/// Draw one crest block: 图标在前、纹章类型文字跟在所有图标之后。
+/// 返回块占用的总高度。
 #[allow(clippy::too_many_arguments)]
 fn draw_crest_block(
     canvas: &mut RgbaImage,
     engine: &TextEngine,
     block: &CrestBlock,
     spit_img: &Option<RgbaImage>,
-    text_x: f32,
-    text_w: f32,
+    _text_x: f32,
+    _text_w: f32,
     y: f32,
 ) -> Result<f32, String> {
     let v = block.scale.clamp(0.1, 1.5);
     let band_h = CREST_BAND_H * v;
-    let text_h = measure_rich(engine, &block.text, text_w, block.size);
-    let sec_h = CREST_BAND_DY + band_h + CREST_TEXT_GAP + text_h + CREST_BOTTOM;
+    let sec_h = CREST_BAND_DY + band_h + CREST_BOTTOM;
     let banner_key = CREST_BORDERS
         .get(block.border as usize)
         .copied()
@@ -646,40 +645,25 @@ fn draw_crest_block(
         "crest section banner",
     )?;
     blit_stretch(canvas, &sec_banner, VB_X, y, VB_W, sec_h);
-    // icon band: border texture stretched over the band rect（与文字同宽）
+    // band: border texture stretched over the band rect
     let band_y = y + CREST_BAND_DY;
     let band_banner = decode(diy_effect_bytes(banner_key).unwrap(), "crest band banner")?;
     blit_stretch(canvas, &band_banner, VB_X, band_y, VB_W, band_h);
 
-    // 名字优先：从 text_x 开始，与正文首字对齐；图标跟在名字后面
-    let name_size = block.size;
-    let mut nx = text_x;
-    if !block.name.is_empty() {
-        engine.draw_plain(
-            canvas,
-            &engine.title,
-            &block.name,
-            nx,
-            band_y + (band_h - name_size) / 2.0,
-            name_size,
-            crate::text::BODY,
-            0.0,
-        );
-        let (nw, _) = engine.measure(&engine.title, &block.name, name_size);
-        nx += nw + 10.0;
-    }
+    // 图标在前，文字在所有图标之后
     let icon_side = (CREST_ICON_SIDE * v).clamp(8.0, band_h);
+    let mut ix = VB_X + CREST_BAND_DX + 4.0;
     let icon1 = resolve_crest(&block.icon1, block.icon1_data.as_deref())?;
     if let Some(ic) = icon1 {
         blit_stretch(
             canvas,
             &ic,
-            nx,
+            ix,
             band_y + (band_h - icon_side) / 2.0,
             icon_side,
             icon_side,
         );
-        nx += icon_side + 4.0;
+        ix += icon_side + 4.0;
     }
     if block.show_icon2 {
         let icon2 = resolve_crest(&block.icon2, block.icon2_data.as_deref())?;
@@ -687,27 +671,28 @@ fn draw_crest_block(
             blit_stretch(
                 canvas,
                 &ic,
-                nx,
+                ix,
                 band_y + (band_h - icon_side) / 2.0,
                 icon_side,
                 icon_side,
             );
+            ix += icon_side + 4.0;
         }
     }
     if !block.text.trim().is_empty() {
-        engine.draw_wrapped_rich(
+        let text_size = block.size;
+        engine.draw_plain(
             canvas,
             &engine.title,
             &block.text,
-            text_x,
-            y + CREST_BAND_DY + band_h + CREST_TEXT_GAP,
-            text_w,
-            block.size,
-            LINE_GAP,
-            PARA_GAP,
-            spit_img.as_ref(),
+            ix + 8.0,
+            band_y + (band_h - text_size) / 2.0,
+            text_size,
+            crate::text::BODY,
+            0.0,
         );
     }
+    let _ = spit_img;
     Ok(sec_h + SECTION_GAP)
 }
 
@@ -817,8 +802,7 @@ mod tests {
             show_diy: true,
             diy: "DIY：某人".into(),
             crests: vec![CrestBlock {
-                name: "试制纹章".into(),
-                text: "纹章 1".into(),
+                text: "试制纹章".into(),
                 border: 0,
                 scale: 1.0,
                 icon1: "builtin:0".into(),
