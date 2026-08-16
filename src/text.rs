@@ -478,20 +478,7 @@ impl TextEngine {
             if txx < 0 || tyy < 0 || txx >= img.width() as i64 || tyy >= img.height() as i64 {
                 continue;
             }
-            let d = img.get_pixel_mut(txx as u32, tyy as u32);
-            let sa = a * (color[3] as f32 / 255.0);
-            if sa >= 1.0 {
-                d[0] = color[0];
-                d[1] = color[1];
-                d[2] = color[2];
-                d[3] = 255;
-                continue;
-            }
-            let da = 1.0 - sa;
-            d[0] = (color[0] as f32 * sa + d[0] as f32 * da) as u8;
-            d[1] = (color[1] as f32 * sa + d[1] as f32 * da) as u8;
-            d[2] = (color[2] as f32 * sa + d[2] as f32 * da) as u8;
-            d[3] = 255;
+            blend_over(img, txx as u32, tyy as u32, color, a * (color[3] as f32 / 255.0));
         }
     }
 
@@ -595,13 +582,13 @@ impl TextEngine {
                             && (txx as u32) < img.width()
                             && (tyy as u32) < img.height()
                         {
-                            let d = img.get_pixel_mut(txx as u32, tyy as u32);
-                            let a = p[3] as f32 / 255.0;
-                            let da = 1.0 - a;
-                            d[0] = (p[0] as f32 * a + d[0] as f32 * da) as u8;
-                            d[1] = (p[1] as f32 * a + d[1] as f32 * da) as u8;
-                            d[2] = (p[2] as f32 * a + d[2] as f32 * da) as u8;
-                            d[3] = 255;
+                            blend_over(
+                                img,
+                                txx as u32,
+                                tyy as u32,
+                                [p[0], p[1], p[2], p[3]],
+                                p[3] as f32 / 255.0,
+                            );
                         }
                     }
                     cursor_y += sh + line_gap;
@@ -787,26 +774,38 @@ pub fn parse_rich(text: &str) -> Vec<RichRun> {
     runs
 }
 
-/// Alpha-blend a single color onto an RGBA pixel.
+/// Straight-alpha "over" blend of `color` at source coverage `sa` onto the
+/// canvas. Unlike the old forced-opaque blend, the destination alpha is
+/// preserved: over transparent areas the result stays (semi-)transparent, so
+/// glows/shadows that spill past the card frame fade smoothly instead of
+/// turning into solid black dots.
 #[inline]
-fn blend_pixel(img: &mut RgbaImage, x: u32, y: u32, color: [u8; 4], a: f32) {
-    let d = img.get_pixel_mut(x, y);
-    let sa = a * (color[3] as f32 / 255.0);
+fn blend_over(img: &mut RgbaImage, x: u32, y: u32, color: [u8; 4], sa: f32) {
     if sa <= 0.0 {
         return;
     }
-    if sa >= 1.0 {
-        d[0] = color[0];
-        d[1] = color[1];
-        d[2] = color[2];
-        d[3] = 255;
+    let d = img.get_pixel_mut(x, y);
+    let da = d[3] as f32 / 255.0;
+    let out_a = sa + da * (1.0 - sa);
+    if out_a <= 0.0 {
+        d[0] = 0;
+        d[1] = 0;
+        d[2] = 0;
+        d[3] = 0;
         return;
     }
-    let da = 1.0 - sa;
-    d[0] = (color[0] as f32 * sa + d[0] as f32 * da) as u8;
-    d[1] = (color[1] as f32 * sa + d[1] as f32 * da) as u8;
-    d[2] = (color[2] as f32 * sa + d[2] as f32 * da) as u8;
-    d[3] = 255;
+    let w_src = sa / out_a;
+    let w_dst = da * (1.0 - sa) / out_a;
+    d[0] = (color[0] as f32 * w_src + d[0] as f32 * w_dst) as u8;
+    d[1] = (color[1] as f32 * w_src + d[1] as f32 * w_dst) as u8;
+    d[2] = (color[2] as f32 * w_src + d[2] as f32 * w_dst) as u8;
+    d[3] = (out_a * 255.0).round() as u8;
+}
+
+/// Alpha-blend a single color onto an RGBA pixel.
+#[inline]
+fn blend_pixel(img: &mut RgbaImage, x: u32, y: u32, color: [u8; 4], a: f32) {
+    blend_over(img, x, y, color, a * (color[3] as f32 / 255.0));
 }
 
 /// 2D box blur on the alpha channel (RGB kept white). Two passes approximate a
@@ -849,6 +848,7 @@ fn composite_tint(
 ) {
     let ox = dx.round() as i64;
     let oy = dy.round() as i64;
+    let tint_a = color[3] as f32 / 255.0;
     for (x, y, p) in glyph.enumerate_pixels() {
         let a = p[3] as f32 / 255.0;
         if a <= 0.0 {
@@ -859,19 +859,66 @@ fn composite_tint(
         if px < 0 || py < 0 || px >= canvas.width() as i64 || py >= canvas.height() as i64 {
             continue;
         }
-        let d = canvas.get_pixel_mut(px as u32, py as u32);
-        let sa = a * (color[3] as f32 / 255.0);
-        let da = 1.0 - sa;
-        d[0] = (color[0] as f32 * sa + d[0] as f32 * da) as u8;
-        d[1] = (color[1] as f32 * sa + d[1] as f32 * da) as u8;
-        d[2] = (color[2] as f32 * sa + d[2] as f32 * da) as u8;
-        d[3] = 255;
+        blend_over(canvas, px as u32, py as u32, color, a * tint_a);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{number_pair_kern, parse_rich, BODY, KEYWORD_GOLD, KEYWORD_YELLOW};
+    use super::{blend_over, number_pair_kern, parse_rich, BODY, KEYWORD_GOLD, KEYWORD_YELLOW};
+    use image::{Rgba, RgbaImage};
+
+    #[test]
+    fn blend_over_preserves_transparency() {
+        // 50% black over fully transparent: stays semi-transparent black,
+        // NOT opaque black (this was the "black dots outside the frame" bug).
+        let mut canvas = RgbaImage::from_pixel(1, 1, Rgba([0, 0, 0, 0]));
+        blend_over(&mut canvas, 0, 0, [0, 0, 0, 255], 0.5);
+        let p = canvas.get_pixel(0, 0);
+        assert_eq!(p[0], 0);
+        assert!((120..=134).contains(&p[3]), "alpha should be ~127, got {}", p[3]);
+
+        // 50% black over opaque white: gray, still opaque.
+        let mut canvas = RgbaImage::from_pixel(1, 1, Rgba([255, 255, 255, 255]));
+        blend_over(&mut canvas, 0, 0, [0, 0, 0, 255], 0.5);
+        let p = canvas.get_pixel(0, 0);
+        assert!((124..=130).contains(&p[0]), "gray ~127, got {}", p[0]);
+        assert_eq!(p[3], 255);
+
+        // 25% black over 50%-transparent pixel: alpha rises, stays < 255.
+        let mut canvas = RgbaImage::from_pixel(1, 1, Rgba([0, 0, 0, 128]));
+        blend_over(&mut canvas, 0, 0, [0, 0, 0, 255], 0.25);
+        let p = canvas.get_pixel(0, 0);
+        assert!(p[3] > 128 && p[3] < 255, "alpha should be in (128,255), got {}", p[3]);
+    }
+
+    #[test]
+    fn number_glow_no_opaque_black_on_transparent() {
+        // Regression: the glow drawn onto a transparent canvas must fade out
+        // smoothly — no fully opaque black pixels may appear (the old forced
+        // d[3]=255 blend turned the whole glow tail into solid black dots).
+        let fonts_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts");
+        let tsukushi = std::fs::read(format!("{fonts_dir}/FOT-TsukuAOldMin-Pr6-E.digits.otf")).unwrap();
+        let nanum = std::fs::read(format!("{fonts_dir}/NanumGothic-ExtraBold.ttf")).unwrap();
+        super::register_font("title_chs", &nanum);
+        super::register_font("number", &tsukushi);
+        let engine = super::TextEngine::for_language("chs").unwrap();
+        let mut canvas = RgbaImage::from_pixel(300, 200, Rgba([0, 0, 0, 0]));
+        // strong glow (radius grows past 1.0) with the number centered
+        engine.draw_number(&mut canvas, "7", 150.0, 100.0, 110.0, 220.0, 6.0, 0.0);
+        let mut dark = 0u32;
+        let mut opaque_dark = 0u32;
+        for (_, _, p) in canvas.enumerate_pixels() {
+            if p[0] < 60 && p[1] < 60 && p[2] < 60 && p[3] > 0 {
+                dark += 1;
+                if p[3] == 255 {
+                    opaque_dark += 1;
+                }
+            }
+        }
+        assert!(dark > 50, "expected a visible glow, got {dark} dark pixels");
+        assert_eq!(opaque_dark, 0, "{opaque_dark} opaque black pixels in the glow");
+    }
 
     #[test]
     fn rich_parse_basic() {
