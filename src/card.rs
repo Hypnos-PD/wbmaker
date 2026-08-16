@@ -101,9 +101,12 @@ pub struct CardConfig {
 /// 一个纹章块（能力面板可添加多个）
 #[derive(Deserialize, Clone, Default)]
 pub struct CrestBlock {
-    /// 纹章类型文字（渲染在图标之后）
+    /// 横带上的类型名（渲染在所有图标之后）
     #[serde(default)]
     pub text: String,
+    /// 横带下方的描述文字
+    #[serde(default)]
+    pub description: String,
     #[serde(default)]
     pub border: u8,
     #[serde(default = "default_crest_scale")]

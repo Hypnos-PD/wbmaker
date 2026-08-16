@@ -62,6 +62,8 @@ const CREST_BAND_H: f32 = 67.2; // (218-50) @0.4
 const CREST_ICON_SIDE: f32 = 59.2; // ~148 @0.4
 const CREST_TEXT_GAP: f32 = 4.0;
 const CREST_BOTTOM: f32 = 12.0; // texture margin 30 @0.4
+/// 横带类型名的字距（负值收紧）
+const CREST_BAND_SPACING: f32 = -2.5;
 // signature rows (fixed on the detail panel)
 const ILLU_X: f32 = 800.0; // 画师行左边缘（标签左对齐，名字紧跟其后）
 const ILLU_TITLE_Y: f32 = 878.6;
@@ -628,13 +630,14 @@ fn draw_crest_block(
     engine: &TextEngine,
     block: &CrestBlock,
     spit_img: &Option<RgbaImage>,
-    _text_x: f32,
-    _text_w: f32,
+    text_x: f32,
+    text_w: f32,
     y: f32,
 ) -> Result<f32, String> {
     let v = block.scale.clamp(0.1, 1.5);
     let band_h = CREST_BAND_H * v;
-    let sec_h = CREST_BAND_DY + band_h + CREST_BOTTOM;
+    let desc_h = measure_rich(engine, &block.description, text_w, block.size);
+    let sec_h = CREST_BAND_DY + band_h + CREST_TEXT_GAP + desc_h + CREST_BOTTOM;
     let banner_key = CREST_BORDERS
         .get(block.border as usize)
         .copied()
@@ -681,7 +684,7 @@ fn draw_crest_block(
     }
     if !block.text.trim().is_empty() {
         let text_size = block.size;
-        engine.draw_plain(
+        engine.draw_plain_spacing(
             canvas,
             &engine.title,
             &block.text,
@@ -690,9 +693,24 @@ fn draw_crest_block(
             text_size,
             crate::text::BODY,
             0.0,
+            CREST_BAND_SPACING,
         );
     }
-    let _ = spit_img;
+    // 横带下方的描述区
+    if !block.description.trim().is_empty() {
+        engine.draw_wrapped_rich(
+            canvas,
+            &engine.title,
+            &block.description,
+            text_x,
+            y + CREST_BAND_DY + band_h + CREST_TEXT_GAP,
+            text_w,
+            block.size,
+            LINE_GAP,
+            PARA_GAP,
+            spit_img.as_ref(),
+        );
+    }
     Ok(sec_h + SECTION_GAP)
 }
 
@@ -803,6 +821,7 @@ mod tests {
             diy: "DIY：某人".into(),
             crests: vec![CrestBlock {
                 text: "试制纹章".into(),
+                description: "纹章描述。".into(),
                 border: 0,
                 scale: 1.0,
                 icon1: "builtin:0".into(),
@@ -843,3 +862,4 @@ mod flip_tests {
         }
     }
 }
+

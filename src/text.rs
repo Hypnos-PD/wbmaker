@@ -224,6 +224,54 @@ impl TextEngine {
         }
     }
 
+    /// Plain left-aligned text with extra letter spacing (negative = tighter).
+    pub fn draw_plain_spacing(
+        &self,
+        img: &mut RgbaImage,
+        primary: &FontArc,
+        text: &str,
+        x: f32,
+        y: f32,
+        size: f32,
+        color: [u8; 4],
+        shadow_off: f32,
+        spacing: f32,
+    ) {
+        let baseline = y + Self::scaled(primary, size).ascent();
+        if shadow_off > 0.0 {
+            let off = shadow_off.max(1.0);
+            for (dx, dy) in [(-off, 0.0), (off, 0.0), (0.0, -off), (0.0, off), (off, off)] {
+                self.draw_text_spaced(img, primary, text, x + dx, baseline + dy, size, color, spacing);
+            }
+        }
+        self.draw_text_spaced(img, primary, text, x, baseline, size, color, spacing);
+    }
+
+    fn draw_text_spaced(
+        &self,
+        img: &mut RgbaImage,
+        primary: &FontArc,
+        text: &str,
+        x: f32,
+        baseline_y: f32,
+        size: f32,
+        color: [u8; 4],
+        spacing: f32,
+    ) {
+        let sf = Self::scaled(primary, size);
+        let mut cx = x;
+        let mut prev: Option<GlyphId> = None;
+        for ch in text.chars() {
+            let gid = sf.glyph_id(ch);
+            if let Some(p) = prev {
+                cx += sf.kern(p, gid);
+            }
+            self.draw_glyph(img, primary, gid, size, cx, baseline_y, color);
+            cx += sf.h_advance(gid) + spacing;
+            prev = Some(gid);
+        }
+    }
+
     /// Plain left-aligned text with shadow, top-left origin.
     pub fn draw_plain(
         &self,

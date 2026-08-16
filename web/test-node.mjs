@@ -63,7 +63,7 @@ const diyCfg = {
   show_illustrator: true,
   show_diy: true,
   crests: [
-    { text: '龙之纹章', border: 0, scale: 1.0,
+    { text: '龙之纹章', description: '这个纹章给主战者带来祝福。', border: 0, scale: 1.0,
       icon1: 'builtin:0', icon2: 'builtin:1', show_icon2: true, size: 32.4 },
   ],
   bg_alpha: 0.3,
