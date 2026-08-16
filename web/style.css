@@ -405,3 +405,41 @@ label.file.small {
   margin-top: 4px;
 }
 .crest-block label { margin-bottom: 8px; }
+
+/* ---- 纹章图标槽与图片选择浮层 ---- */
+
+.slot-row { display: inline-flex; align-items: center; gap: 6px; }
+.crest-slot {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--border);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crest-slot:hover { border-color: var(--accent); }
+.crest-slot img { width: 100%; height: 100%; object-fit: contain; }
+.slot-tag {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 900;
+  word-break: break-all;
+  overflow: hidden;
+  padding: 2px;
+}
+.crest-grid.pick {
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.crest-grid.pick .crest-cell { aspect-ratio: 1; }

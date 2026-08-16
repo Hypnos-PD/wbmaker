@@ -119,7 +119,7 @@ const UI = {
     crestName: "纹章名称", crestBorder: "纹章边框", crestScale: "名称区域缩放",
     crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
     illustrator: "画师", diyAuthor: "脚注", illusTitle: "画师:",
-    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", nameSize: "卡名字号",
+    keywordBtn: "[b]关键词[/b]", hrBtn: "分割线 [hr]", addCrest: "＋ 添加纹章", crestIconNone: "无", nameSize: "卡名字号",
     crestBorder0: "纹章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "结晶",
   },
   eng: {
@@ -141,7 +141,7 @@ const UI = {
     crestName: "Crest Name", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
     illustrator: "Illustrator", diyAuthor: "Footnote", illusTitle: "Illus by ",
-    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", nameSize: "Name size",
+    keywordBtn: "[b]keyword[/b]", hrBtn: "Split line [hr]", addCrest: "+ Add Crest", crestIconNone: "None", nameSize: "Name size",
     crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
   jpn: {
@@ -163,7 +163,7 @@ const UI = {
     crestName: "紋章名", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
     crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
     illustrator: "イラストレーター", diyAuthor: "脚注", illusTitle: "イラスト:",
-    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ 紋章を追加", nameSize: "カード名サイズ",
+    keywordBtn: "[b]キーワード[/b]", hrBtn: "区切り線 [hr]", addCrest: "＋ 紋章を追加", crestIconNone: "なし", nameSize: "カード名サイズ",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
   kor: {
@@ -185,7 +185,7 @@ const UI = {
     crestName: "문장 이름", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
     crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
     illustrator: "일러스트레이터", diyAuthor: "각주", illusTitle: "일러스트: ",
-    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", nameSize: "카드 이름 크기",
+    keywordBtn: "[b]키워드[/b]", hrBtn: "구분선 [hr]", addCrest: "+ 문장 추가", crestIconNone: "없음", nameSize: "카드 이름 크기",
     crestBorder0: "문장", crestBorder1: "신앙", crestBorder2: "가속", crestBorder3: "결정",
   },
   cht: {
@@ -207,7 +207,7 @@ const UI = {
     crestName: "紋章名稱", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
     illustrator: "畫師", diyAuthor: "腳註", illusTitle: "畫師:",
-    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", nameSize: "卡名字號",
+    keywordBtn: "[b]關鍵詞[/b]", hrBtn: "分隔線 [hr]", addCrest: "＋ 新增紋章", crestIconNone: "無", nameSize: "卡名字號",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
 };
@@ -820,13 +820,69 @@ function insertAtCaret(textarea, tag) {
 
 let crestBlocks = 0;
 
-function crestIconOptions(selected) {
-  let html = `<option value="">无</option>`;
+// 纹章图标图片选择器：点图标槽打开浮层网格，选择后回填对应槽位
+let crestPickTarget = null; // { div, slot }
+
+function buildCrestPickGrid() {
+  const grid = document.getElementById('crestPickGrid');
+  grid.innerHTML = '';
+  const none = document.createElement('button');
+  none.type = 'button';
+  none.className = 'crest-cell';
+  none.dataset.spec = '';
+  none.title = t('crestIconNone') || '无';
+  none.innerHTML = '<span style="font-size:11px;font-weight:900;">无</span>';
+  none.addEventListener('click', () => applyCrestPick(''));
+  grid.appendChild(none);
   builtinCrests.forEach((name, idx) => {
-    html += `<option value="builtin:${idx}"${selected === `builtin:${idx}` ? ' selected' : ''}>内置 ${idx}</option>`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'crest-cell';
+    btn.dataset.spec = `builtin:${idx}`;
+    const img = document.createElement('img');
+    img.src = `crests/${name}.png`;
+    img.alt = String(idx);
+    img.loading = 'lazy';
+    btn.appendChild(img);
+    btn.title = `内置 ${idx}`;
+    btn.addEventListener('click', () => applyCrestPick(btn.dataset.spec));
+    grid.appendChild(btn);
   });
-  html += `<option value="upload"${selected === 'upload' ? ' selected' : ''}>上传</option>`;
-  return html;
+  document.getElementById('crestPickClose').addEventListener('click', closeCrestPick);
+}
+
+function openCrestPick(div, slot) {
+  crestPickTarget = { div, slot };
+  document.getElementById('crestPickOverlay').hidden = false;
+}
+
+function closeCrestPick() {
+  document.getElementById('crestPickOverlay').hidden = true;
+  crestPickTarget = null;
+}
+
+function applyCrestPick(spec) {
+  if (!crestPickTarget) return;
+  const { div, slot } = crestPickTarget;
+  const cell = div.querySelector(`[data-crest-slot="${slot}"]`);
+  cell.dataset.spec = spec;
+  const img = cell.querySelector('img');
+  if (spec.startsWith('builtin:')) {
+    const idx = parseInt(spec.slice(8), 10);
+    img.src = `crests/${builtinCrests[idx]}.png`;
+    img.style.visibility = 'visible';
+  } else if (spec === 'upload') {
+    img.style.visibility = 'hidden';
+    cell.querySelector('.slot-tag').textContent = t('uploadCrest');
+  } else {
+    img.style.visibility = 'hidden';
+    cell.querySelector('.slot-tag').textContent = t('crestIconNone');
+  }
+  // 上传文件输入需要清空，避免旧文件残留
+  const up = div.querySelector(`[data-crest-upload="${slot === 'icon1' ? 1 : 2}"]`);
+  if (up) up.value = '';
+  closeCrestPick();
+  renderPreview();
 }
 
 function addCrestBlock() {
@@ -848,9 +904,21 @@ function addCrestBlock() {
     <label><span>${t('crestScale')}</span>
       <input type="range" data-c-scale min="0.1" max="1.5" step="0.1" value="1.0"></label>
     <label class="crest-inline"><span>${t('crestIcon1')}</span>
-      <select data-c-icon1>${crestIconOptions('builtin:0')}</select></label>
+      <span class="slot-row">
+        <button type="button" class="crest-slot" data-crest-slot="icon1" data-spec="builtin:0">
+          <img src="crests/${builtinCrests[0] || ''}.png" alt="">
+          <span class="slot-tag"></span>
+        </button>
+        <button type="button" class="mini" data-crest-upload-btn="1">${t('uploadCrest')}</button>
+      </span></label>
     <label class="crest-inline"><span>${t('crestIcon2')}</span>
-      <select data-c-icon2>${crestIconOptions('builtin:0')}</select>
+      <span class="slot-row">
+        <button type="button" class="crest-slot" data-crest-slot="icon2" data-spec="builtin:0">
+          <img src="crests/${builtinCrests[0] || ''}.png" alt="">
+          <span class="slot-tag"></span>
+        </button>
+        <button type="button" class="mini" data-crest-upload-btn="2">${t('uploadCrest')}</button>
+      </span>
       <input type="checkbox" data-c-show2 checked></label>
     <input type="file" accept="image/*" data-c-upload1 hidden>
     <input type="file" accept="image/*" data-c-upload2 hidden>
@@ -863,26 +931,34 @@ function addCrestBlock() {
   });
   const refresh = () => renderPreview();
   div.querySelectorAll('input, select, textarea').forEach((el) => el.addEventListener('input', refresh));
-  div.querySelector('[data-c-icon1]').addEventListener('change', (e) => {
-    if (e.target.value === 'upload') div.querySelector('[data-c-upload1]').click();
-    else refresh();
-  });
-  div.querySelector('[data-c-icon2]').addEventListener('change', (e) => {
-    if (e.target.value === 'upload') div.querySelector('[data-c-upload2]').click();
-    else refresh();
-  });
+  div.querySelector('[data-crest-slot="icon1"]').addEventListener('click', () => openCrestPick(div, 'icon1'));
+  div.querySelector('[data-crest-slot="icon2"]').addEventListener('click', () => openCrestPick(div, 'icon2'));
+  div.querySelector('[data-crest-upload-btn="1"]').addEventListener('click', () => div.querySelector('[data-c-upload1]').click());
+  div.querySelector('[data-crest-upload-btn="2"]').addEventListener('click', () => div.querySelector('[data-c-upload2]').click());
   div.querySelector('[data-c-upload1]').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (file) {
-      try { crest1Bytes = await fileToPng(file); crestSpec1 = 'upload'; refresh(); }
-      catch (err) { alert(t('imageReadFailed') + err.message); }
+      try {
+        crest1Bytes = await fileToPng(file); crestSpec1 = 'upload';
+        const slot = div.querySelector('[data-crest-slot="icon1"]');
+        slot.dataset.spec = 'upload';
+        slot.querySelector('img').style.visibility = 'hidden';
+        slot.querySelector('.slot-tag').textContent = file.name;
+        refresh();
+      } catch (err) { alert(t('imageReadFailed') + err.message); }
     }
   });
   div.querySelector('[data-c-upload2]').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (file) {
-      try { crest2Bytes = await fileToPng(file); crestSpec2 = 'upload'; refresh(); }
-      catch (err) { alert(t('imageReadFailed') + err.message); }
+      try {
+        crest2Bytes = await fileToPng(file); crestSpec2 = 'upload';
+        const slot = div.querySelector('[data-crest-slot="icon2"]');
+        slot.dataset.spec = 'upload';
+        slot.querySelector('img').style.visibility = 'hidden';
+        slot.querySelector('.slot-tag').textContent = file.name;
+        refresh();
+      } catch (err) { alert(t('imageReadFailed') + err.message); }
     }
   });
   return div;
@@ -894,15 +970,15 @@ function collectCrests() {
     const name = div.querySelector('[data-c-name]').value;
     const text = div.querySelector('[data-c-text]').value;
     if (!name.trim() && !text.trim()) return; // 空块跳过
-    const sel1 = div.querySelector('[data-c-icon1]');
-    const sel2 = div.querySelector('[data-c-icon2]');
+    const slot1 = div.querySelector('[data-crest-slot="icon1"]');
+    const slot2 = div.querySelector('[data-crest-slot="icon2"]');
     blocks.push({
       name,
       text,
       border: parseInt(div.querySelector('[data-c-border]').value, 10) || 0,
       scale: parseFloat(div.querySelector('[data-c-scale]').value) || 1.0,
-      icon1: sel1.value === 'upload' ? crestSpec1 : sel1.value,
-      icon2: sel2.value === 'upload' ? crestSpec2 : sel2.value,
+      icon1: slot1.dataset.spec === 'upload' ? crestSpec1 : (slot1.dataset.spec || ''),
+      icon2: slot2.dataset.spec === 'upload' ? crestSpec2 : (slot2.dataset.spec || ''),
       show_icon2: div.querySelector('[data-c-show2]').checked,
       size: DIY_SIZES.cre * 0.4,
     });
@@ -1013,6 +1089,7 @@ async function main() {
   } catch (e) {
     console.error(e);
   }
+  buildCrestPickGrid();
   addCrestBlock();
   await cardPromise;
   registerFonts(currentLang, await fontDownload);

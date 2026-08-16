@@ -84,9 +84,8 @@ const DIY_CLASSES: [&str; 8] = [
     "portalcraft",
 ];
 const CREST_BORDERS: [&str; 4] = ["Crest", "Faith", "Accelerate", "Crystallize"];
-/// Built-in crest icons, index 0 = default (luna), then cost_0..cost_10, then 2 extra.
-pub const CREST_BUILTIN: [&str; 14] = [
-    "default_crest",
+/// Built-in crest icons: cost_0..cost_10 + 2 extra.
+pub const CREST_BUILTIN: [&str; 13] = [
     "cost_0",
     "cost_1",
     "cost_2",
@@ -164,7 +163,6 @@ pub fn diy_effect_bytes(key: &str) -> Option<&'static [u8]> {
 
 pub fn diy_crest_bytes(name: &str) -> Option<&'static [u8]> {
     let bytes = match name {
-        "default_crest" => include_bytes!("../assets/diy/crests/default_crest.png") as &[u8],
         "cost_0" => include_bytes!("../assets/diy/crests/cost_0.png") as &[u8],
         "cost_1" => include_bytes!("../assets/diy/crests/cost_1.png") as &[u8],
         "cost_2" => include_bytes!("../assets/diy/crests/cost_2.png") as &[u8],
@@ -243,19 +241,14 @@ fn resolve_crest(spec: &str, upload: Option<&[u8]>) -> Result<Option<RgbaImage>,
         return Ok(None);
     }
     if let Some(idx) = spec.strip_prefix("builtin:") {
-        let n: usize = idx.parse().unwrap_or(0);
+        let n: usize = idx.parse().unwrap_or(usize::MAX);
         if let Some(name) = CREST_BUILTIN.get(n) {
             if let Some(bytes) = diy_crest_bytes(name) {
                 return decode(bytes, "crest icon").map(Some);
             }
         }
-        return Ok(None);
     }
-    // default: the luna crest
-    if let Some(bytes) = diy_crest_bytes("default_crest") {
-        return decode(bytes, "crest icon").map(Some);
-    }
-    Ok(None)
+    Ok(None) // 空规格/未知规格 = 不绘制图标
 }
 
 pub fn render_diy(

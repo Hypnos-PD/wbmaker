@@ -71,9 +71,6 @@ def main():
     for name in builtin:
         out.append((f"{SRC}/img/build_in_crest/{name}",
                     f"{DST}/crests/{name}", CREST_SIZE, Image.LANCZOS, "PNG"))
-    out.append((f"{SRC}/img/test/luna_crest.jpg",
-                f"{DST}/crests/default_crest.png", CREST_SIZE, Image.LANCZOS, "PNG"))
-
     total = 0
     for src, dst, size, filt, fmt in out:
         os.makedirs(os.path.dirname(dst), exist_ok=True)
