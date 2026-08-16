@@ -648,14 +648,15 @@ fn draw_crest_block(
         "crest section banner",
     )?;
     blit_stretch(canvas, &sec_banner, VB_X, y, VB_W, sec_h);
-    // band: border texture stretched over the band rect
+    // band: 与 byd-diy 的 CrestIconArea 一致 —— 宽 618.4，起点 VB_X+8
+    let band_x = VB_X + CREST_BAND_DX;
     let band_y = y + CREST_BAND_DY;
     let band_banner = decode(diy_effect_bytes(banner_key).unwrap(), "crest band banner")?;
-    blit_stretch(canvas, &band_banner, VB_X, band_y, VB_W, band_h);
+    blit_stretch(canvas, &band_banner, band_x, band_y, CREST_BAND_W, band_h);
 
-    // 图标在前，文字在所有图标之后
-    let icon_side = (CREST_ICON_SIDE * v).clamp(8.0, band_h);
-    let mut ix = VB_X + CREST_BAND_DX + 4.0;
+    // 图标在前（带内 32px 前导缩进，同 byd-diy），文字在所有图标之后
+    let icon_side = (CREST_ICON_SIDE * v).clamp(8.0, band_h * 0.9);
+    let mut ix = band_x + 32.0;
     let icon1 = resolve_crest(&block.icon1, block.icon1_data.as_deref())?;
     if let Some(ic) = icon1 {
         blit_stretch(
