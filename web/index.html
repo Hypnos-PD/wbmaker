@@ -17,7 +17,12 @@
       <a class="topbar-logo" href="/">WB <span data-i18n="brand">制卡器</span></a>
       <a class="top-action" href="/" data-i18n="backToWba">返回 WBA</a>
       <div class="topbar-spacer"></div>
-      <button class="top-action" id="btnInstall" type="button" data-i18n="installApp" hidden>📲 安装为应用</button>
+      <button class="top-action" id="btnInstall" type="button" data-i18n-title="installApp" title="安装为应用" hidden>
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px">
+          <path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 19h16"/>
+        </svg>
+        <span data-i18n="installApp">安装为应用</span>
+      </button>
       <div class="style-toggle" role="group" aria-label="card style">
         <button class="style-btn active" id="btnStyleWb" type="button" data-i18n="styleWb">单卡图</button>
         <button class="style-btn" id="btnStyleDiy" type="button" data-i18n="styleDiy">效果图</button>
@@ -194,6 +199,18 @@
         <span class="crop-spacer"></span>
         <button id="cropCancel" class="btn" type="button" data-i18n="cropCancel">取消</button>
         <button id="cropConfirm" class="btn" type="button" data-i18n="cropConfirm">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="installModal" class="crop-overlay" hidden>
+    <div class="crop-panel" style="max-width:420px">
+      <div class="crop-title" data-i18n="installApp">安装为应用</div>
+      <p id="installHintText" data-i18n="installHint">请使用浏览器菜单中的「安装应用 / 添加到主屏幕」。</p>
+      <div class="crop-actions">
+        <span class="crop-spacer"></span>
+        <button id="installLater" class="btn" type="button" data-i18n="later">稍后</button>
+        <button id="installConfirm" class="btn primary" type="button" data-i18n="installConfirm">安装</button>
       </div>
     </div>
   </div>
