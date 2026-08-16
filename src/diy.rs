@@ -63,13 +63,13 @@ const CREST_ICON_SIDE: f32 = 59.2; // ~148 @0.4
 const CREST_TEXT_GAP: f32 = 4.0;
 const CREST_BOTTOM: f32 = 12.0; // texture margin 30 @0.4
 // signature rows (fixed on the detail panel)
-const ILLU_X: f32 = 780.0; // 画师行左边缘（标签左对齐，名字紧跟其后）
-const ILLU_TITLE_Y: f32 = 874.6;
-const ILLU_SIZE: f32 = 34.0; // 画师行字号（比正文 32.4 略大）
+const ILLU_X: f32 = 800.0; // 画师行左边缘（标签左对齐，名字紧跟其后）
+const ILLU_TITLE_Y: f32 = 878.6;
+const ILLU_SIZE: f32 = 28.0; // 画师行字号（比正文 32.4 略大）
 const DIY_X: f32 = 732.0;
-const DIY_Y: f32 = 966.0; // 下移
+const DIY_Y: f32 = 1020.0; // 下移
 const DIY_RIGHT: f32 = 1788.8;
-const DIY_SIZE: f32 = 34.0;
+const DIY_SIZE: f32 = 26.0;
 const SPLIT_ALPHA: f32 = 0.5; // 分隔线透明度
 
 // wbm class (0=neutral..7=portal) -> sv-byd-diy asset name

@@ -252,19 +252,100 @@ label.file input { display: none; }
 }
 .mini:hover { background: var(--accent); }
 
+/* ---- 统一控件风格（不用浏览器原生样式） ---- */
+
+/* 复选框：方块化，勾选填色 */
+input[type=checkbox] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  position: relative;
+  flex: none;
+  box-shadow: 2px 2px 0 var(--border);
+  vertical-align: -3px;
+}
+input[type=checkbox]:checked {
+  background: var(--accent);
+}
+input[type=checkbox]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--border);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 label.check {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
 }
-label.check input { accent-color: var(--accent); }
 
-label > input[type=range] {
+/* 滑条：自定义轨道与滑块 */
+input[type=range] {
+  appearance: none;
+  -webkit-appearance: none;
   display: block;
   width: 100%;
-  margin-top: 4px;
-  accent-color: var(--accent);
+  height: 18px;
+  margin-top: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 8px;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--border);
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  background: var(--accent);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--border);
+}
+input[type=range]::-moz-range-track {
+  height: 8px;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--border);
+}
+input[type=range]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+/* 下拉框：去掉原生箭头，统一边框风格 */
+label > select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--border) 50%),
+    linear-gradient(135deg, var(--border) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 55%, calc(100% - 11px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 28px;
 }
 
 .crest-inline { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }

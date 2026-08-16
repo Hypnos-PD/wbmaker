@@ -721,6 +721,11 @@ pub fn parse_rich(text: &str) -> Vec<RichRun> {
                             push(&mut runs, &mut cur, color, italic);
                             runs.push(RichRun { text: String::new(), color, italic, split: true });
                         }
+                        "hr" => {
+                            // 分割线 bbcode，自闭合
+                            push(&mut runs, &mut cur, color, italic);
+                            runs.push(RichRun { text: String::new(), color, italic, split: true });
+                        }
                         _ => {
                             cur.push(c);
                         }
