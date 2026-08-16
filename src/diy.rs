@@ -51,7 +51,6 @@ const TEXT_INSET: f32 = 12.0;
 const SECTION_GAP: f32 = 20.0; // VBox separation 50 @0.4
 const LINE_GAP: f32 = 8.0; // line_separation 20 @0.4
 const PARA_GAP: f32 = 8.0; // paragraph_separation 20 @0.4
-const DEFAULT_TEXT_SIZE: f32 = 32.4; // 81 @0.4
 const EV_TEXT_TOP: f32 = 20.0; // content_margin_top 50 @0.4
 const EV_TEXT_BOTTOM: f32 = 8.0; // texture margin 20 @0.4
 // crest banner band
