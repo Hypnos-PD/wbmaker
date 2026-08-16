@@ -531,11 +531,17 @@ pub fn render_diy(
 
     // 6. signature rows
     if config.show_illustrator && !config.illustrator.trim().is_empty() {
+        // 画师行：中文用黑体（illus_chs，方正兰亭圆），其他语言暂沿用标题字体
+        let illus_font = if config.language == "chs" {
+            crate::text::font_by_key("illus_chs").unwrap_or_else(|| engine.title.clone())
+        } else {
+            engine.title.clone()
+        };
         let label = if config.illus_title.is_empty() { "画师：" } else { &config.illus_title };
-        let (lw, _) = engine.measure(&engine.title, label, DEFAULT_TEXT_SIZE);
+        let (lw, _) = engine.measure(&illus_font, label, DEFAULT_TEXT_SIZE);
         engine.draw_plain(
             &mut canvas,
-            &engine.title,
+            &illus_font,
             label,
             ILLU_TITLE_RIGHT - lw,
             ILLU_TITLE_Y,
@@ -545,7 +551,7 @@ pub fn render_diy(
         );
         engine.draw_plain(
             &mut canvas,
-            &engine.title,
+            &illus_font,
             &config.illustrator,
             ILLU_X,
             ILLU_TITLE_Y,

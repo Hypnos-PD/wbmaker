@@ -72,6 +72,13 @@ const DEFAULT_CARD = {
     kor: '【질주】\n【수호】\n【오라】',
     cht: '【疾馳】\n【守護】\n【光紋】',
   },
+  footnote: {
+    chs: '※卡牌能力为DIY内容。',
+    eng: '※ Card abilities are DIY content.',
+    jpn: '※カード能力はDIY内容です。',
+    kor: '※ 카드 능력은 DIY 콘텐츠입니다.',
+    cht: '※卡牌能力為DIY內容。',
+  },
 };
 
 // ---- Shared language setting (same key/values as WBArts) ----
@@ -110,7 +117,7 @@ const UI = {
     detail1: "正文", detail2: "第二段正文", evolve: "进化", super: "超进化", crest: "纹章",
     crestName: "纹章名称", crestBorder: "纹章边框", crestScale: "名称区域缩放",
     crestIcon1: "纹章图标 1", crestIcon2: "纹章图标 2", uploadCrest: "上传",
-    illustrator: "画师", diyAuthor: "DIY 作者", illusTitle: "画师：",
+    illustrator: "画师", diyAuthor: "脚注", illusTitle: "画师：",
     keywordBtn: "[b]关键词[/b]", nameSize: "卡名字号",
     crestBorder0: "纹章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "结晶",
   },
@@ -132,7 +139,7 @@ const UI = {
     detail1: "Skill Text", detail2: "Second Skill Text", evolve: "Evolve", super: "Super Evolve", crest: "Crest",
     crestName: "Crest Name", crestBorder: "Crest Border", crestScale: "Name Area Scale",
     crestIcon1: "Crest Icon 1", crestIcon2: "Crest Icon 2", uploadCrest: "Upload",
-    illustrator: "Illustrator", diyAuthor: "DIY Author", illusTitle: "Illus by ",
+    illustrator: "Illustrator", diyAuthor: "Footnote", illusTitle: "Illus by ",
     keywordBtn: "[b]keyword[/b]", nameSize: "Name size",
     crestBorder0: "Crest", crestBorder1: "Faith", crestBorder2: "Accelerate", crestBorder3: "Crystallize",
   },
@@ -154,7 +161,7 @@ const UI = {
     detail1: "効果テキスト", detail2: "第二効果テキスト", evolve: "進化", super: "超進化", crest: "紋章",
     crestName: "紋章名", crestBorder: "紋章枠", crestScale: "名称エリア拡大率",
     crestIcon1: "紋章アイコン 1", crestIcon2: "紋章アイコン 2", uploadCrest: "アップロード",
-    illustrator: "イラストレーター", diyAuthor: "DIY 作者", illusTitle: "イラスト：",
+    illustrator: "イラストレーター", diyAuthor: "脚注", illusTitle: "イラスト：",
     keywordBtn: "[b]キーワード[/b]", nameSize: "カード名サイズ",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
@@ -176,7 +183,7 @@ const UI = {
     detail1: "효과 텍스트", detail2: "두 번째 효과 텍스트", evolve: "진화", super: "초진화", crest: "문장",
     crestName: "문장 이름", crestBorder: "문장 테두리", crestScale: "명칭 영역 배율",
     crestIcon1: "문장 아이콘 1", crestIcon2: "문장 아이콘 2", uploadCrest: "업로드",
-    illustrator: "일러스트레이터", diyAuthor: "DIY 제작자", illusTitle: "일러스트: ",
+    illustrator: "일러스트레이터", diyAuthor: "각주", illusTitle: "일러스트: ",
     keywordBtn: "[b]키워드[/b]", nameSize: "카드 이름 크기",
     crestBorder0: "문장", crestBorder1: "신앙", crestBorder2: "가속", crestBorder3: "결정",
   },
@@ -198,7 +205,7 @@ const UI = {
     detail1: "正文", detail2: "第二段正文", evolve: "進化", super: "超進化", crest: "紋章",
     crestName: "紋章名稱", crestBorder: "紋章邊框", crestScale: "名稱區域縮放",
     crestIcon1: "紋章圖示 1", crestIcon2: "紋章圖示 2", uploadCrest: "上傳",
-    illustrator: "畫師", diyAuthor: "DIY 作者", illusTitle: "畫師：",
+    illustrator: "畫師", diyAuthor: "腳註", illusTitle: "畫師：",
     keywordBtn: "[b]關鍵詞[/b]", nameSize: "卡名字號",
     crestBorder0: "紋章", crestBorder1: "信仰", crestBorder2: "激奏", crestBorder3: "結晶",
   },
@@ -274,6 +281,12 @@ function registerFonts(lang, bufs) {
 async function loadFonts(lang) {
   const bufs = await startFontDownload(lang);
   registerFonts(lang, bufs);
+  // 画师行的中文黑体（其他语言暂沿用标题字体，后续再补）
+  if (lang === 'chs' && !registeredFonts.has('illus_chs')) {
+    const illus = await loadFontFile('FZLanTYJW.TTF');
+    if (!register_font('illus_chs', illus)) throw new Error(t('fontRegFailed') + 'illus_chs');
+    registeredFonts.add('illus_chs');
+  }
 }
 
 const $ = (sel) => document.querySelector(sel);
@@ -459,6 +472,8 @@ async function loadDefaultCard() {
   field('d1').value = DEFAULT_CARD.detail1[lang];
   field('d2').value = DEFAULT_CARD.detail2[lang];
   field('showDetail2').checked = true;
+  field('diy').value = DEFAULT_CARD.footnote[lang];
+  field('showDiy').checked = true;
   updateKindUI();
   rebuildRarity();
 
@@ -488,6 +503,7 @@ function resetDiyFields() {
   field('bgAlpha').value = '30';
   field('crestScale').value = '1.0';
   field('crestBorder').value = '0';
+  field('diy').value = DEFAULT_CARD.footnote[currentLang] || DEFAULT_CARD.footnote.chs;
   for (const k of Object.keys(DIY_SIZES)) DIY_SIZES[k] = 81;
   refreshSizeLabels();
   crestSpec1 = 'builtin:0';

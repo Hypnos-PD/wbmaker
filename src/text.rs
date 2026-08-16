@@ -76,6 +76,12 @@ fn get_font(key: &str) -> Option<FontArc> {
     FONTS.get()?.lock().unwrap().get(key).cloned()
 }
 
+/// Look up a registered font by key (e.g. "illus_chs" for the 黑体 signature
+/// font). Returns None when the key was never registered.
+pub fn font_by_key(key: &str) -> Option<FontArc> {
+    get_font(key)
+}
+
 pub struct TextEngine {
     /// Card name / title font (per language).
     pub title: FontArc,
