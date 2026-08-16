@@ -5,7 +5,7 @@
 
 use crate::card::{ArtCrop, CardConfig, KIND_FOLLOWER};
 use crate::text::TextEngine;
-use image::{DynamicImage, GenericImageView, ImageFormat, RgbaImage};
+use image::{DynamicImage, GenericImageView, RgbaImage};
 
 // ---- design-space layout (782 x 1024) ----
 pub const BASE_W: f32 = 782.0;
@@ -81,6 +81,14 @@ pub fn icon_bytes(class: u8) -> Option<&'static [u8]> {
 }
 
 pub fn render(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u8>, String> {
+    let canvas = render_to_image(config, art_bytes)?;
+    encode_png_fast(&canvas)
+}
+
+/// Compose the card into an RGBA canvas without encoding, so callers that
+/// blit the card into a larger canvas (the DIY 1920x1080 product image) can
+/// skip a full PNG encode + decode round trip.
+pub fn render_to_image(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<RgbaImage, String> {
     let s = config.scale.clamp(0.5, 4.0);
     let cw = (BASE_W * s).round() as u32;
     let ch = (BASE_H * s).round() as u32;
@@ -192,10 +200,24 @@ pub fn render(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u8>, 
         }
     }
 
-    // 5. encode PNG
+    Ok(canvas)
+}
+
+/// Fast PNG encoding for interactive re-renders: adaptive filter selection is
+/// the dominant encode cost at 1080p, so it is skipped entirely (NoFilter) and
+/// zlib runs at Fast instead of Default. Files come out somewhat larger but
+/// encoding is several times faster, which matters more for live preview.
+pub(crate) fn encode_png_fast(img: &RgbaImage) -> Result<Vec<u8>, String> {
+    use image::codecs::png::{CompressionType, FilterType, PngEncoder};
+    use image::ImageEncoder;
     let mut out = Vec::new();
-    DynamicImage::ImageRgba8(canvas)
-        .write_to(&mut std::io::Cursor::new(&mut out), ImageFormat::Png)
+    PngEncoder::new_with_quality(&mut out, CompressionType::Fast, FilterType::Sub)
+        .write_image(
+            img.as_raw(),
+            img.width(),
+            img.height(),
+            image::ExtendedColorType::Rgba8,
+        )
         .map_err(|e| format!("png encode failed: {e}"))?;
     Ok(out)
 }
@@ -203,6 +225,11 @@ pub fn render(config: &CardConfig, art_bytes: Option<&[u8]>) -> Result<Vec<u8>, 
 // ---- image helpers ----
 
 pub(crate) fn resize_lanczos(img: &RgbaImage, w: u32, h: u32) -> RgbaImage {
+    // No-op resize (e.g. a 1920x1080 background blitted at 1920x1080) still
+    // costs a full Lanczos pass; return the source as-is instead.
+    if (w, h) == img.dimensions() {
+        return img.clone();
+    }
     DynamicImage::ImageRgba8(img.clone())
         .resize_exact(w, h, image::imageops::FilterType::Lanczos3)
         .to_rgba8()
@@ -219,7 +246,11 @@ pub(crate) fn blit_cover(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f
     let scale = (dw as f32 / sw as f32).max(dh as f32 / sh as f32);
     let nw = (sw as f32 * scale).round() as u32;
     let nh = (sh as f32 * scale).round() as u32;
-    let resized = resize_lanczos(src, nw, nh);
+    let resized = if (nw, nh) == (sw, sh) {
+        src.clone()
+    } else {
+        resize_lanczos(src, nw, nh)
+    };
     let cx = (nw.saturating_sub(dw)) / 2;
     let cy = (nh.saturating_sub(dh)) / 2;
     let cropped = resized.view(cx, cy, dw, dh).to_image();
@@ -253,7 +284,11 @@ pub(crate) fn blit_crop(
     let cw = cw.clamp(1, sw - sx);
     let ch = ch.clamp(1, sh - sy);
     let cropped = src.view(sx, sy, cw, ch).to_image();
-    let resized = resize_lanczos(&cropped, dw, dh);
+    let resized = if (dw, dh) == (cw, ch) {
+        cropped
+    } else {
+        resize_lanczos(&cropped, dw, dh)
+    };
     image::imageops::overlay(canvas, &resized, dx.round() as i64, dy.round() as i64);
 }
 

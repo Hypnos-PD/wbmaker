@@ -1,4 +1,5 @@
-import init, { render_card, render_diy_card, register_font, version, list_diy_crests } from './pkg/wbmaker.js';
+import init, { render_card, render_diy_card, version, list_diy_crests } from './pkg/wbmaker.js';
+import { ensureFonts, loadFontFile, loadFontChunksManifest, NUMBER_FONT } from './fonts.js';
 
 let artBytes = null; // PNG bytes of uploaded art (full resolution)
 let cropState = null; // normalized crop rect {x,y,w,h} applied at render time
@@ -21,24 +22,8 @@ const SPECIAL_BY_KIND = {
   amulet: ['', 'style_101'],
 };
 
-// Per-language title fonts (extracted from the game's data.unity3d).
-const FONT_MAP = {
-  chs: 'arweibeigbpro_bd.otf',
-  cht: 'DFT_W7-930.ttf',
-  jpn: 'MOC-KaiminTsuki-B.otf',
-  kor: 'NanumGothic-ExtraBold.ttf',
-  eng: 'MOC-KaiminTsuki-B.otf',
-};
-const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.digits.otf'; // 筑紫明朝（数字字体）
-// 署名行（画师/脚注）字体：Noto Sans CJK 各语言版本（画师=粗体，脚注=常规）
-// 署名字体（画师/脚注同用常规体，按需分块）
-const SIGNATURE_FONT = {
-  chs: 'NotoSansSC-Regular.otf',
-  cht: 'NotoSansTC-Regular.otf',
-  jpn: 'NotoSansJP-Regular.otf',
-  kor: 'NotoSansKR-Regular.otf',
-  eng: 'NotoSansSC-Regular.otf',
-};
+// Per-language title fonts / signature fonts / number font moved to fonts.js
+// (shared with the render worker).
 
 // Default card preloaded on startup: 90074110 卓越创造物Ω (Masterwork Artifact Ω).
 // Skill texts come from WBArts data/cards.json (game markup converted to the
@@ -237,122 +222,7 @@ function t(key) {
   return UI[currentLang]?.[key] || UI.chs[key] || key;
 }
 
-const loadedFonts = {}; // filename -> Uint8Array (cached bytes)
-const registeredFonts = new Set(); // registry keys already registered
-
-async function loadFontFile(filename) {
-  if (loadedFonts[filename]) return loadedFonts[filename];
-  // Fetching the same file concurrently would duplicate the download; let a
-  // single in-flight promise serve all waiters.
-  if (!loadFontFile.inflight) loadFontFile.inflight = new Map();
-  if (loadFontFile.inflight.has(filename)) return loadFontFile.inflight.get(filename);
-  const p = (async () => {
-    // 分块清单里的路径已含 fonts/ 前缀
-    const url = filename.startsWith('fonts/') ? filename : 'fonts/' + filename;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(t('fontLoadFailed') + filename);
-    const buf = new Uint8Array(await resp.arrayBuffer());
-    loadedFonts[filename] = buf;
-    loadFontFile.inflight.delete(filename);
-    return buf;
-  })();
-  loadFontFile.inflight.set(filename, p);
-  return p;
-}
-
-// ---- 字体分块按需加载（unicode-range 分包，参照 shadowverse-wb.com 的做法） ----
-
-let fontChunksManifest = null;
-
-async function loadFontChunksManifest() {
-  if (fontChunksManifest) return fontChunksManifest;
-  try {
-    const resp = await fetch('font-chunks.json');
-    fontChunksManifest = resp.ok ? await resp.json() : {};
-  } catch (e) {
-    fontChunksManifest = {};
-  }
-  return fontChunksManifest;
-}
-
-// 递归收集配置里的全部字符串（用于计算需要哪些字体块）
-function collectTextStrings(cfg) {
-  const out = [];
-  const walk = (v) => {
-    if (typeof v === 'string') out.push(v);
-    else if (Array.isArray(v)) v.forEach(walk);
-    else if (v && typeof v === 'object') Object.values(v).forEach(walk);
-  };
-  walk(cfg);
-  return out;
-}
-
-const registeredChunks = {}; // prefix -> Set(已注册的分块文件)
-
-// 按需拉取+注册 prefix 的分块字体；缺清单或失败时回退整字体（prefix 无后缀键）
-async function ensureChunkFonts(prefix, manifestKey, texts, fallbackFile) {
-  const manifest = await loadFontChunksManifest();
-  const entry = manifest[manifestKey];
-  const done = registeredChunks[prefix] || (registeredChunks[prefix] = new Set());
-  if (!entry || !entry.files || !entry.files.length) {
-    if (!registeredFonts.has(prefix)) {
-      const buf = await loadFontFile(fallbackFile);
-      if (!register_font(prefix, buf)) throw new Error(t('fontRegFailed') + prefix);
-      registeredFonts.add(prefix);
-    }
-    return;
-  }
-  // 计算文本用到的块
-  const needed = new Set();
-  for (const text of texts) {
-    for (const ch of text) {
-      const cp = ch.codePointAt(0);
-      for (const f of entry.files) {
-        for (const [lo, hi] of f.ranges) {
-          if (cp >= lo && cp <= hi) { needed.add(f.file); break; }
-        }
-      }
-    }
-  }
-  for (const file of needed) {
-    if (done.has(file)) continue;
-    try {
-      const buf = await loadFontFile(file);
-      const m = file.match(/(\d+)\.otf$/);
-      const idx = m ? m[1] : String(done.size);
-      if (!register_font(`${prefix}_${idx}`, buf)) throw new Error('register failed');
-      done.add(file);
-    } catch (e) {
-      // 分块失败：回退整字体
-      console.warn('chunk font failed, fallback to whole font:', file, e);
-      const buf = await loadFontFile(fallbackFile);
-      if (!registeredFonts.has(prefix)) {
-        if (!register_font(prefix, buf)) throw new Error(t('fontRegFailed') + prefix);
-        registeredFonts.add(prefix);
-      }
-      return;
-    }
-  }
-}
-
-async function loadFonts(lang, cfg) {
-  const texts = collectTextStrings(cfg);
-  // 署名行只需要画师/脚注文本的字符块；※ 是渲染器自动加在脚注前的前缀，
-  // 不在配置文本里，需要显式补上，否则它所在的分块不会被拉取
-  const sigTexts = ['※', cfg.illus_title || '', cfg.illustrator || '', cfg.diy || ''];
-  // 数字字体（整文件，仅 124KB）
-  const numberBuf = await loadFontFile(NUMBER_FONT);
-  if (!registeredFonts.has('number')) {
-    if (!register_font('number', numberBuf)) throw new Error(t('fontRegFailed') + 'number');
-    registeredFonts.add('number');
-  }
-  // 标题字体：按需分块
-  await ensureChunkFonts(`title_${lang}`, lang, texts, FONT_MAP[lang] || FONT_MAP.chs);
-  // 署名字体：画师与脚注（常规体）
-  const sigFile = SIGNATURE_FONT[lang] || SIGNATURE_FONT.chs;
-  await ensureChunkFonts(`illus_${lang}`, `${lang}-sig`, sigTexts, sigFile);
-  await ensureChunkFonts(`footnote_${lang}`, `${lang}-sig`, sigTexts, sigFile);
-}
+// 字体加载逻辑已抽到 fonts.js（渲染 Worker 与主线程回退共用）。
 
 const $ = (sel) => document.querySelector(sel);
 const form = () => document.getElementById('cardForm');
@@ -448,7 +318,7 @@ function buildRenderConfig() {
 // wbm 职业编号 -> byd-diy 背景文件名（与 wasm 内 DIY_CLASSES 一致）
 const DIY_BG_CLASS = ['neutral', 'forestcraft', 'swordcraft', 'runecraft',
   'dragoncraft', 'abysscraft', 'havencraft', 'portalcraft'];
-const loadedBackgrounds = {}; // 文件名 -> Uint8Array
+const loadedBackgrounds = {}; // 文件名 -> Uint8Array（仅主线程回退路径使用）
 
 async function loadClassBackground(config) {
   const cls = DIY_BG_CLASS[config.class] || 'neutral';
@@ -462,14 +332,6 @@ async function loadClassBackground(config) {
   return buf;
 }
 
-async function renderCard(config, art) {
-  if (isDiy()) {
-    const bg = await loadClassBackground(config);
-    return render_diy_card(JSON.stringify(config), art || new Uint8Array(0), bg);
-  }
-  return render_card(JSON.stringify(config), art || new Uint8Array(0));
-}
-
 function bytesToBase64(bytes) {
   let bin = '';
   const CHUNK = 0x8000;
@@ -479,22 +341,107 @@ function bytesToBase64(bytes) {
   return btoa(bin);
 }
 
-async function renderPreview() {
-  try {
-    const cfg = buildRenderConfig();
-    await loadFonts(currentLang, cfg);
-    const png = await renderCard(cfg, artBytes);
-    const blob = new Blob([png], { type: 'image/png' });
-    const url = URL.createObjectURL(blob);
-    const img = document.getElementById('preview');
-    const old = img.src;
-    img.onload = () => { if (old) URL.revokeObjectURL(old); };
-    img.src = url;
-    document.getElementById('previewHint').style.display = 'none';
-  } catch (e) {
-    document.getElementById('previewHint').style.display = '';
-    document.getElementById('previewHint').textContent = t('renderFailed') + e.message;
+// ---- rendering: Web Worker keeps the UI thread responsive; the sync path
+//      below is only a fallback for browsers without module workers. ----
+
+let renderWorker = null;
+let workerFailed = false;
+let renderSeq = 0;                  // 最近一次预览请求 id（过期结果直接丢弃）
+const exportPending = new Map();    // export id -> { resolve, reject }
+
+function getRenderWorker() {
+  if (renderWorker) return renderWorker;
+  const w = new Worker('render-worker.js', { type: 'module' });
+  w.onmessage = onWorkerMessage;
+  w.onerror = (e) => {
+    console.error('render worker error:', e);
+    workerFailed = true;
+    showRenderError(e.message || 'worker error');
+  };
+  renderWorker = w;
+  return w;
+}
+
+function onWorkerMessage(e) {
+  const msg = e.data;
+  if (!msg) return;
+  if (msg.type === 'result') {
+    const exp = exportPending.get(msg.id);
+    if (exp) {
+      exportPending.delete(msg.id);
+      exp.resolve(msg.png);
+      return;
+    }
+    if (msg.id === renderSeq) showPreviewPng(msg.png);
+    return;
   }
+  if (msg.type === 'error') {
+    const exp = exportPending.get(msg.id);
+    if (exp) {
+      exportPending.delete(msg.id);
+      exp.reject(new Error(msg.message));
+      return;
+    }
+    if (msg.id === renderSeq) showRenderError(msg.message);
+  }
+}
+
+// 把渲染请求发给 Worker；Worker 不可用时回退到主线程同步渲染。
+function requestRender(msg) {
+  if (!workerFailed && typeof Worker !== 'undefined') {
+    try {
+      getRenderWorker().postMessage(msg);
+      return;
+    } catch (e) {
+      console.warn('worker render unavailable, falling back to main thread:', e);
+      workerFailed = true;
+    }
+  }
+  renderOnMainThread(msg);
+}
+
+// 主线程回退：与 Worker 里相同的渲染逻辑（会阻塞 UI，仅兜底）。
+async function renderOnMainThread(msg) {
+  try {
+    await ensureFonts(msg.lang, msg.cfg);
+    const cfgJson = JSON.stringify(msg.cfg);
+    const art = msg.art || new Uint8Array(0);
+    const png = msg.cfg.style === 'diy'
+      ? render_diy_card(cfgJson, art, await loadClassBackground(msg.cfg))
+      : render_card(cfgJson, art);
+    onWorkerMessage({ data: { type: 'result', id: msg.id, png } });
+  } catch (e) {
+    onWorkerMessage({ data: { type: 'error', id: msg.id, message: String((e && e.message) || e) } });
+  }
+}
+
+function showPreviewPng(png) {
+  const blob = new Blob([png], { type: 'image/png' });
+  const url = URL.createObjectURL(blob);
+  const img = document.getElementById('preview');
+  const old = img.src;
+  img.onload = () => { if (old) URL.revokeObjectURL(old); };
+  img.src = url;
+  document.getElementById('previewHint').style.display = 'none';
+}
+
+function showRenderError(message) {
+  document.getElementById('previewHint').style.display = '';
+  document.getElementById('previewHint').textContent = t('renderFailed') + message;
+}
+
+// 预览防抖：连点/连续输入合并成一次渲染；延迟期间浏览器照常重绘，
+// 所以字号按钮的数值先变、预览随后跟上，互不阻塞。
+let previewTimer = null;
+function schedulePreviewRender(delay = 250) {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(renderPreview, delay);
+}
+
+function renderPreview() {
+  const cfg = buildRenderConfig();
+  const id = ++renderSeq;
+  requestRender({ type: 'render', id, cfg, lang: currentLang, art: artBytes || new Uint8Array(0) });
 }
 
 function downloadBlob(blob, filename) {
@@ -506,16 +453,25 @@ function downloadBlob(blob, filename) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
-async function exportPng() {
-  try {
-    const cfg = buildRenderConfig();
-    await loadFonts(currentLang, cfg);
-    const png = await renderCard(cfg, artBytes);
-    const name = (cfg.name || 'card').replace(/[\\/:*?"<>|]/g, '_');
+function exportPng() {
+  const cfg = buildRenderConfig();
+  const id = -++renderSeq; // 负数 id，与预览请求互不冲突
+  const name = (cfg.name || 'card').replace(/[\\/:*?"<>|]/g, '_');
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      exportPending.delete(id);
+      reject(new Error('export timeout'));
+    }, 60000);
+    exportPending.set(id, {
+      resolve: (png) => { clearTimeout(timer); resolve(png); },
+      reject: (e) => { clearTimeout(timer); reject(e); },
+    });
+    requestRender({ type: 'export', id, cfg, lang: currentLang, art: artBytes || new Uint8Array(0) });
+  }).then((png) => {
     downloadBlob(new Blob([png], { type: 'image/png' }), `${name}.png`);
-  } catch (e) {
+  }).catch((e) => {
     alert(t('exportFailed') + e.message);
-  }
+  });
 }
 
 function updateKindUI() {
@@ -1129,11 +1085,23 @@ function collectCrests() {
 }
 
 function bindDiyControls() {
+  // 字号 +/-：数值立即生效并重绘（防抖渲染在短延迟后由 Worker 执行，
+  // 浏览器先画完新数值，按钮反馈不再等渲染完成）；到上下限时不再触发渲染。
   document.querySelectorAll('[data-size-up]').forEach((btn) => {
-    btn.addEventListener('click', () => { changeSize(btn.dataset.sizeUp, 2); renderPreview(); });
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.sizeUp;
+      const before = DIY_SIZES[key];
+      changeSize(key, 2);
+      if (DIY_SIZES[key] !== before) schedulePreviewRender(120);
+    });
   });
   document.querySelectorAll('[data-size-down]').forEach((btn) => {
-    btn.addEventListener('click', () => { changeSize(btn.dataset.sizeDown, -2); renderPreview(); });
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.sizeDown;
+      const before = DIY_SIZES[key];
+      changeSize(key, -2);
+      if (DIY_SIZES[key] !== before) schedulePreviewRender(120);
+    });
   });
   document.querySelectorAll('[data-keyword]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1155,11 +1123,7 @@ function bindDiyControls() {
 // ---- events ----
 
 function bindEvents() {
-  let debounceTimer = null;
-  const scheduleRender = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(renderPreview, 250);
-  };
+  const scheduleRender = () => schedulePreviewRender(250);
 
   form().addEventListener('input', scheduleRender);
   form().addEventListener('change', scheduleRender);
@@ -1189,7 +1153,7 @@ function bindEvents() {
 
   document.getElementById('btnAddCrest').addEventListener('click', () => {
     addCrestBlock();
-    renderPreview();
+    schedulePreviewRender(120);
   });
   bindCropPanel();
   bindDiyControls();
@@ -1205,11 +1169,9 @@ function bindEvents() {
 }
 
 async function main() {
-  // 预载数字字体与分块清单（与 wasm 并行）；标题字体按需分块拉取
-  const fontDownload = Promise.all([
-    loadFontFile(NUMBER_FONT).catch(() => null),
-    loadFontChunksManifest().catch(() => null),
-  ]);
+  // 预热 HTTP 缓存（数字字体与分块清单；Worker 首次渲染时再取即为缓存命中）
+  loadFontFile(NUMBER_FONT).catch(() => null);
+  loadFontChunksManifest().catch(() => null);
   document.documentElement.lang = LANG_HTML[currentLang] || 'zh-CN';
   buildLangDropdown();
   updateLangUI();
@@ -1226,7 +1188,6 @@ async function main() {
   buildCrestPickGrid();
   addCrestBlock();
   await cardPromise;
-  await fontDownload;
   bindEvents();
   renderPreview();
 }

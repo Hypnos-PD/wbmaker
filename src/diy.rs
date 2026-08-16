@@ -9,7 +9,7 @@ use ab_glyph::{Font, ScaleFont};
 use crate::card::{CardConfig, CrestBlock};
 use crate::render::{fill_rect, blit_cover};
 use crate::text::TextEngine;
-use image::{DynamicImage, ImageFormat, RgbaImage};
+use image::{RgbaImage};
 
 pub const DIY_W: u32 = 1920;
 pub const DIY_H: u32 = 1080;
@@ -188,11 +188,18 @@ fn flipped_top_half(img: &RgbaImage) -> RgbaImage {
     out
 }
 
-/// Stretch-blit `src` into the destination rect.
+/// Stretch-blit `src` into the destination rect. Skips the resize entirely
+/// when the source already has the target size (the title band textures and
+/// class backgrounds are authored at 1920x1080 and get stretched to exactly
+/// that), since a Lanczos pass over ~2M pixels costs more than it saves.
 fn blit_stretch(canvas: &mut RgbaImage, src: &RgbaImage, dx: f32, dy: f32, dw: f32, dh: f32) {
     let dw = dw.round() as u32;
     let dh = dh.round() as u32;
     if dw == 0 || dh == 0 {
+        return;
+    }
+    if src.dimensions() == (dw, dh) {
+        image::imageops::overlay(canvas, src, dx.round() as i64, dy.round() as i64);
         return;
     }
     let resized = image::imageops::resize(src, dw, dh, image::imageops::FilterType::Lanczos3);
@@ -292,11 +299,11 @@ pub fn render_diy(
         blit_stretch(&mut canvas, &bottom, 0.0, -4.8, 1920.0, 1115.2);
     }
 
-    // 3. the card: fully reuse the official WB card pipeline (单卡图).
+    // 3. the card: fully reuse the official WB card pipeline (单卡图), but
+    //    keep the raw pixels so we skip a PNG encode + decode round trip.
     let mut wb_config = config.clone();
     wb_config.scale = CARD_SCALE;
-    let card_png = crate::render::render(&wb_config, art_bytes)?;
-    let card_img = decode(&card_png, "card render")?;
+    let card_img = crate::render::render_to_image(&wb_config, art_bytes)?;
     image::imageops::overlay(
         &mut canvas,
         &card_img,
@@ -532,11 +539,7 @@ pub fn render_diy(
         );
     }
 
-    let mut out = Vec::new();
-    DynamicImage::ImageRgba8(canvas)
-        .write_to(&mut std::io::Cursor::new(&mut out), ImageFormat::Png)
-        .map_err(|e| format!("png encode failed: {e}"))?;
-    Ok(out)
+    Ok(crate::render::encode_png_fast(&canvas)?)
 }
 
 /// Height (px) a wrapped rich text block will occupy. Mirrors draw_wrapped_rich.
