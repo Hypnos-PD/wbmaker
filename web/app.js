@@ -1009,6 +1009,7 @@ function addCrestBlock() {
     <input type="file" accept="image/*" data-c-upload2 hidden>
     <div class="tool mini-row">
       <button type="button" class="mini" data-crest-b="${n}">[b]</button>
+      <button type="button" class="mini" data-crest-hr="${n}">[hr]</button>
       <button type="button" class="mini" data-crest-bracket="${n}">【】</button>
       <button type="button" class="mini" data-crest-bracket="${n}" data-tag="『』">『』</button>
       <button type="button" class="mini" data-crest-bracket="${n}" data-tag="「」">「」</button>
@@ -1025,6 +1026,9 @@ function addCrestBlock() {
   const descEl = div.querySelector('[data-c-desc]');
   div.querySelectorAll('[data-crest-b]').forEach((btn) => {
     btn.addEventListener('click', () => insertAtCaret(descEl, '[b][/b]', 'middle'));
+  });
+  div.querySelectorAll('[data-crest-hr]').forEach((btn) => {
+    btn.addEventListener('click', () => insertAtCaret(descEl, '[hr]', 'end'));
   });
   div.querySelectorAll('[data-crest-bracket]').forEach((btn) => {
     btn.addEventListener('click', () => insertAtCaret(descEl, btn.dataset.tag || '【】', 'middle'));
