@@ -479,3 +479,17 @@ label.file.small {
 .crest-grid.pick .crest-cell { aspect-ratio: 1; }
 
 .mini-row { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+
+/* ---- 独立应用（standalone）：隐藏 WBA 站内导航（logo + 返回 WBA），
+        保留样式切换 / 重置 / 语言切换 ---- */
+body.standalone .topbar-logo,
+body.standalone .topbar .top-action[href="/"] { display: none; }
+
+/* ---- 轻量提示条（独立应用导出成功的反馈） ---- */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(12px);
+  background: rgba(20, 24, 20, 0.92); color: #dff3c4; padding: 10px 18px;
+  border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease; z-index: 999;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

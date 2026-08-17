@@ -1,6 +1,10 @@
 import init, { render_card, render_diy_card, version, list_diy_crests } from './pkg/wbmaker.js';
 import { ensureFonts, loadFontFile, loadFontChunksManifest, NUMBER_FONT } from './fonts.js';
 
+// 独立应用标记：由打包版的内嵌服务器注入到 index.html；网页版无此标记。
+const STANDALONE = !!window.__WBMAKER_STANDALONE__;
+if (STANDALONE) document.body.classList.add('standalone');
+
 let artBytes = null; // PNG bytes of uploaded art (full resolution)
 let cropState = null; // normalized crop rect {x,y,w,h} applied at render time
 
@@ -92,7 +96,7 @@ const UI = {
     art: "立绘", artPh: "选择图片（PNG/JPG/WebP）",
     exportPng: "导出 PNG", reset: "重置",
     previewLoading: "预览加载中…",
-    renderFailed: "渲染失败：", exportFailed: "导出失败：", imageReadFailed: "图片读取失败：",
+    renderFailed: "渲染失败：", exportFailed: "导出失败：", imageReadFailed: "图片读取失败：", savedToast: "已导出 PNG ✓",
     fontLoadFailed: "字体加载失败: ", fontRegFailed: "字体注册失败: ",
     normal: "普通", langTitle: "切换语言 / Language",
     cropTitle: "裁切立绘", cropHint: "滚轮缩放 · 拖拽平移",
@@ -114,7 +118,7 @@ const UI = {
     art: "Art", artPh: "Choose image (PNG/JPG/WebP)",
     exportPng: "Export PNG", reset: "Reset",
     previewLoading: "Loading preview…",
-    renderFailed: "Render failed: ", exportFailed: "Export failed: ", imageReadFailed: "Failed to read image: ",
+    renderFailed: "Render failed: ", exportFailed: "Export failed: ", imageReadFailed: "Failed to read image: ", savedToast: "PNG exported ✓",
     fontLoadFailed: "Failed to load font: ", fontRegFailed: "Failed to register font: ",
     normal: "Normal", langTitle: "Switch language / 语言",
     cropTitle: "Crop Art", cropHint: "Scroll to zoom · Drag to pan",
@@ -136,7 +140,7 @@ const UI = {
     art: "イラスト", artPh: "画像を選択（PNG/JPG/WebP）",
     exportPng: "PNG 出力", reset: "リセット",
     previewLoading: "プレビュー読込中…",
-    renderFailed: "描画失敗：", exportFailed: "出力失敗：", imageReadFailed: "画像読込失敗：",
+    renderFailed: "描画失敗：", exportFailed: "出力失敗：", imageReadFailed: "画像読込失敗：", savedToast: "PNGをエクスポートしました ✓",
     fontLoadFailed: "フォント読込失敗: ", fontRegFailed: "フォント登録失敗: ",
     normal: "通常", langTitle: "言語切替 / Language",
     cropTitle: "イラストをトリミング", cropHint: "ホイールで拡大縮小 · ドラッグで移動",
@@ -158,7 +162,7 @@ const UI = {
     art: "일러스트", artPh: "이미지 선택（PNG/JPG/WebP）",
     exportPng: "PNG 내보내기", reset: "초기화",
     previewLoading: "미리보기 로딩 중…",
-    renderFailed: "렌더링 실패：", exportFailed: "내보내기 실패：", imageReadFailed: "이미지 읽기 실패：",
+    renderFailed: "렌더링 실패：", exportFailed: "내보내기 실패：", imageReadFailed: "이미지 읽기 실패：", savedToast: "PNG 내보내기 완료 ✓",
     fontLoadFailed: "폰트 로드 실패: ", fontRegFailed: "폰트 등록 실패: ",
     normal: "일반", langTitle: "언어 전환 / Language",
     cropTitle: "일러스트 자르기", cropHint: "휠로 확대/축소 · 드래그로 이동",
@@ -180,7 +184,7 @@ const UI = {
     art: "立繪", artPh: "選擇圖片（PNG/JPG/WebP）",
     exportPng: "匯出 PNG", reset: "重設",
     previewLoading: "預覽載入中…",
-    renderFailed: "渲染失敗：", exportFailed: "匯出失敗：", imageReadFailed: "圖片讀取失敗：",
+    renderFailed: "渲染失敗：", exportFailed: "匯出失敗：", imageReadFailed: "圖片讀取失敗：", savedToast: "已匯出 PNG ✓",
     fontLoadFailed: "字體載入失敗: ", fontRegFailed: "字體註冊失敗: ",
     normal: "普通", langTitle: "切換語言 / Language",
     cropTitle: "裁切立繪", cropHint: "滾輪縮放 · 拖曳平移",
@@ -468,10 +472,44 @@ function exportPng() {
     });
     requestRender({ type: 'export', id, cfg, lang: currentLang, art: artBytes || new Uint8Array(0) });
   }).then((png) => {
+    if (STANDALONE) return savePngNative(png, `${name}.png`);
     downloadBlob(new Blob([png], { type: 'image/png' }), `${name}.png`);
   }).catch((e) => {
     alert(t('exportFailed') + e.message);
   });
+}
+
+// 独立应用：POST 原始 PNG 到内嵌服务器的 /api/save_png（Rust 侧弹系统
+// 保存对话框 / 写入相册或应用目录），绕开 WebView 里 blob 下载不可靠的问题。
+async function savePngNative(png, filename) {
+  const resp = await fetch(`http://127.0.0.1:${location.port}/api/save_png`, {
+    method: 'POST',
+    headers: { 'X-Filename': encodeURIComponent(filename) },
+    body: png,
+  });
+  if (!resp.ok) throw new Error('save failed: HTTP ' + resp.status);
+  const r = await resp.json();
+  if (r.ok) {           // 桌面：系统对话框已确认；移动端：已写入相册
+    showToast(t('savedToast'));
+    return;
+  }
+  if (r.cancelled) return;   // 用户取消保存
+  throw new Error(r.error || 'save failed');
+}
+
+// 轻量提示条（独立应用里替代 alert 的静默成功反馈）
+function showToast(text) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => el.classList.remove('show'), 2600);
 }
 
 function updateKindUI() {

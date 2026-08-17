@@ -880,6 +880,10 @@ pub fn parse_rich(text: &str) -> Vec<RichRun> {
                 // 只有【】里的关键词标黄；『』（卡牌名引用）保持当前颜色
                 let highlight = c == '【';
                 let color_before = color;
+                // 括号内的默认颜色：【】= 黄，『』= 进入时的颜色
+                let default_color = if highlight { KEYWORD_YELLOW } else { color_before };
+                // 括号内是否处于显式 [b] 区域（显式加粗覆盖【】的自动标色）
+                let mut explicit_bold = false;
                 push(&mut runs, &mut cur, color, italic);
                 cur.push(c); // opening bracket
                 i += c.len_utf8();
@@ -892,8 +896,47 @@ pub fn parse_rich(text: &str) -> Vec<RichRun> {
                     if ch == closing {
                         break;
                     }
-                    // 【】内：数字与下划线保持白色，其余标黄；『』内：一律保持当前颜色
-                    let hc = if !highlight {
+                    // [b]/[i] 标签在括号内同样生效；未知标签按字面处理
+                    if ch == '[' {
+                        if let Some(tag_end) = sub.find(']') {
+                            let tag = &sub[1..tag_end];
+                            let handled = match tag {
+                                "b" => {
+                                    push(&mut runs, &mut cur, color, italic);
+                                    color = KEYWORD_GOLD;
+                                    explicit_bold = true;
+                                    true
+                                }
+                                "/b" => {
+                                    push(&mut runs, &mut cur, color, italic);
+                                    color = default_color;
+                                    explicit_bold = false;
+                                    true
+                                }
+                                "i" => {
+                                    push(&mut runs, &mut cur, color, italic);
+                                    italic = true;
+                                    true
+                                }
+                                "/i" => {
+                                    push(&mut runs, &mut cur, color, italic);
+                                    italic = false;
+                                    true
+                                }
+                                _ => false,
+                            };
+                            if handled {
+                                i += tag_end + 1;
+                                continue;
+                            }
+                        }
+                        cur.push(ch);
+                        i += 1;
+                        continue;
+                    }
+                    // 【】内：数字与下划线保持白色，其余标黄（显式 [b] 区域除外）；
+                    // 『』内：一律保持当前颜色
+                    let hc = if explicit_bold || !highlight {
                         color
                     } else if ch == '_' || "0123456789".contains(ch) {
                         BODY
@@ -1131,6 +1174,46 @@ mod tests {
         assert_eq!(runs.len(), 1);
         assert_eq!(runs[0].text, "『精灵』");
         assert_eq!(runs[0].color, KEYWORD_GOLD);
+    }
+
+    #[test]
+    fn rich_parse_bold_inside_hollow_brackets() {
+        // 『』内 [b][/b] 应生效：金色 + 恢复括号默认色
+        let runs = parse_rich("『[b]金色[/b]白色』");
+        assert_eq!(runs.len(), 3);
+        assert_eq!(runs[0].text, "『");
+        assert_eq!(runs[0].color, BODY);
+        assert_eq!((runs[1].text.as_str(), runs[1].color), ("金色", KEYWORD_GOLD));
+        assert_eq!((runs[2].text.as_str(), runs[2].color), ("白色』", BODY));
+    }
+
+    #[test]
+    fn rich_parse_bold_inside_solid_brackets() {
+        // 【】内 [b] 覆盖自动标黄；[/b] 后回到黄色；闭括号保持白色
+        let runs = parse_rich("【[b]守护[/b]能力】");
+        assert_eq!(runs.len(), 4);
+        assert_eq!((runs[0].text.as_str(), runs[0].color), ("【", BODY));
+        assert_eq!((runs[1].text.as_str(), runs[1].color), ("守护", KEYWORD_GOLD));
+        assert_eq!((runs[2].text.as_str(), runs[2].color), ("能力", KEYWORD_YELLOW));
+        assert_eq!((runs[3].text.as_str(), runs[3].color), ("】", BODY));
+        // 【】内 [b] 结束后，数字仍按规则保持白色
+        let runs = parse_rich("【[b]x[/b]12】");
+        assert_eq!(runs.len(), 3);
+        assert_eq!(runs[1].color, KEYWORD_GOLD);
+        assert_eq!(runs[2].color, BODY);
+        assert_eq!(runs[2].text, "12】");
+    }
+
+    #[test]
+    fn rich_parse_italic_inside_brackets() {
+        let runs = parse_rich("『[i]斜[/i]体』");
+        assert_eq!(runs.len(), 3);
+        assert_eq!(runs[0].text, "『");
+        assert!(!runs[0].italic);
+        assert_eq!(runs[1].text, "斜");
+        assert!(runs[1].italic);
+        assert_eq!(runs[2].text, "体』");
+        assert!(!runs[2].italic);
     }
 
     #[test]

@@ -7,3 +7,11 @@
 
 # Deployment script (user-specific, contains SSH target)
 /deploy.sh
+
+# Tauri 打包产物
+/src-tauri/target/
+/src-tauri/gen/
+/web-dist/
+
+# Tauri 移动端工程（tauri android init / ios init 生成，可提交或重新生成）
+/gen/

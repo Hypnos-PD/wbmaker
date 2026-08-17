@@ -1,0 +1,22 @@
+[package]
+name = "wbmaker-app"
+version = "0.1.0"
+description = "WB 制卡器（wbmaker）桌面/移动端壳"
+edition = "2021"
+
+# 空 [workspace]：与仓库根目录的 wasm crate 隔离，互不干扰构建。
+[workspace]
+
+[lib]
+name = "wbmaker_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tiny_http = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

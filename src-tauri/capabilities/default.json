@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "默认能力：本应用不使用 JS→Rust IPC（导出走内嵌服务器的 HTTP 端点），仅保留核心窗口权限。",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

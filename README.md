@@ -71,6 +71,25 @@ python3 -m http.server -d web 8000
 
 > 需通过 HTTP 访问（ES Module + wasm fetch）；直接双击 `file://` 打开可能因 CORS 无法加载 wasm。
 
+## 多端打包（桌面 + 移动）
+
+基于 **Tauri 2** 打包成 Windows / macOS / Linux / Android / iOS 原生应用
+（本地安装包分发，可完全离线运行）。壳代码在 `src-tauri/`，打包脚本为
+`tools/package.sh`；前端零改动复用 `web/`，渲染 Worker 照常工作。
+
+```bash
+./tools/package.sh linux     # 本机 Linux（deb / AppImage）
+./tools/package.sh win       # 需在 Windows 上构建
+./tools/package.sh mac       # 需在 macOS 上构建
+./tools/package.sh android   # 需 Android SDK/NDK + JDK 17
+./tools/package.sh ios       # 需 macOS + Xcode
+```
+
+架构要点：壳内 Rust 启动只监听 `127.0.0.1` 随机端口的静态服务器伺服前端，
+WebView 加载 localhost（自定义协议下 module worker 在 WKWebView 上不可靠）；
+导出 PNG 走壳的 `/api/save_png`（系统保存对话框）。依赖、签名、移动端专项
+配置详见 **[docs/PACKAGING.md](docs/PACKAGING.md)**。
+
 ## 无浏览器冒烟测试
 
 ```bash
