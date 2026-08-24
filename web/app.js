@@ -949,7 +949,11 @@ function normalizeWbaText(text) {
     .replace(/<i>/gi, '[i]').replace(/<\/i>/gi, '[/i]')
     .replace(/<[^>]+>/g, '')
     .replace(/\[b\]\[b\]([\s\S]*?)\[\/b\]\[\/b\]/g, '[b]$1[/b]')
-    .replace(/\n{3,}/g, '\n\n').trim();
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n*\[hr\]\n*/g, '\n[hr]\n')
+    .replace(/^(?:\[hr\]\s*)+|(?:\s*\[hr\])+$/g, '')
+    .replace(/\n{2,}/g, '\n').trim();
 }
 
 function cardAbilities(card) {
@@ -957,6 +961,9 @@ function cardAbilities(card) {
   const add = (key, text) => { if (text) out[key] += (out[key] ? '\n' : '') + normalizeWbaText(text); };
   for (const skill of card.skill_texts || []) {
     let text = skill[`text_${currentLang}`] || skill.text_chs || skill.text_eng || '';
+    // DIY renders section dividers itself. Remove only separators introducing
+    // evolve sections; ordinary <hr> markers inside the main text stay intact.
+    text = text.replace(/<hr\s*\/?>(?:\s|\n)*(?=<(?:s)?ev>)/gi, '');
     const ev = text.match(/<ev>([\s\S]*?)<\/ev>/i);
     const sev = text.match(/<sev>([\s\S]*?)<\/sev>/i);
     if (ev) { add('evolve', ev[1]); text = text.replace(ev[0], ''); }
