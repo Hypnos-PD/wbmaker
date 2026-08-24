@@ -38,6 +38,20 @@ html, body {
 }
 .form section:first-child h2 { margin-top: 0; }
 
+.card-tools { border: 2px solid var(--border); padding: 10px; margin-bottom: 14px; background: #f7f7f7; }
+.card-search { position: relative; margin: 0 0 8px; }
+.card-search input { min-height: 36px; }
+.card-search-results {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
+  max-height: 240px; overflow: auto; background: #fff;
+  border: 2px solid var(--border); box-shadow: 3px 3px 0 var(--border);
+}
+.card-search-results[hidden] { display: none; }
+.card-search-results button { display: block; width: 100%; border: 0; border-bottom: 1px solid #ddd; background: #fff; text-align: left; padding: 8px 10px; cursor: pointer; font: 700 12px inherit; }
+.card-search-results button:hover { background: var(--accent); }
+.draft-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.card-tool-status { min-height: 16px; margin-top: 6px; color: var(--text2); font-size: 11px; font-weight: 800; }
+
 label {
   display: block;
   margin-bottom: 10px;

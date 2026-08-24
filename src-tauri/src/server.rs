@@ -6,6 +6,7 @@
 //! WKWebView 上不可靠；localhost HTTP 与网页版行为完全一致。
 
 use std::net::{Ipv4Addr, TcpListener};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -96,11 +97,37 @@ fn handle(root: &Path, save: &SaveFn, request: tiny_http::Request) {
         handle_save(save, request);
         return;
     }
+    if request.method() == &tiny_http::Method::Get && path.starts_with("/api/wbarts/") {
+        handle_wbarts(request, path);
+        return;
+    }
     if request.method() != &tiny_http::Method::Get {
         respond(request, 405, "text/plain", b"method not allowed");
         return;
     }
     serve_static(root, path, request);
+}
+
+fn handle_wbarts(request: tiny_http::Request, path: &str) {
+    let upstream_path = path.trim_start_matches("/api/wbarts/");
+    if upstream_path.is_empty() || upstream_path.split('/').any(|part| part == "..") {
+        respond(request, 400, "text/plain", b"invalid WBArts path");
+        return;
+    }
+    let url = format!("https://sva.hypd.asia/{upstream_path}");
+    match ureq::get(&url).set("User-Agent", "wbmaker").call() {
+        Ok(response) => {
+            let status = response.status();
+            let mime = response.header("Content-Type").unwrap_or("application/octet-stream").to_string();
+            let mut body = Vec::new();
+            if response.into_reader().read_to_end(&mut body).is_err() {
+                respond(request, 502, "text/plain", b"WBArts proxy read failed");
+            } else {
+                respond(request, status as u16, &mime, &body);
+            }
+        }
+        Err(error) => respond(request, 502, "text/plain", error.to_string().as_bytes()),
+    }
 }
 
 fn handle_save(save: &SaveFn, mut request: tiny_http::Request) {

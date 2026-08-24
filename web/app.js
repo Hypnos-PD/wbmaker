@@ -101,7 +101,8 @@ const UI = {
     normal: "普通", langTitle: "切换语言 / Language",
     cropTitle: "裁切立绘", cropHint: "滚轮缩放 · 拖拽平移",
     cropZoomIn: "放大", cropZoomOut: "缩小", cropReset: "复位", cropCancel: "取消", cropConfirm: "确认",
-    styleWb: "单卡图", styleDiy: "效果图",
+    styleWb: "单卡图", styleDiy: "效果图", loadFromWba: "从 WBArts 载入卡牌",
+    saveDraft: "保存草稿", loadDraft: "载入草稿", deleteDraft: "删除草稿",
     diyPanel: "能力面板", trait: "兵种类型", traitTitle: "类型", bgAlpha: "正文底透明度",
     detail1: "正文", evolve: "进化", super: "超进化", crest: "纹章",
     crestDesc: "纹章描述", energy: "能量", crestBorder: "纹章边框", crestScale: "名称区域缩放",
@@ -123,7 +124,8 @@ const UI = {
     normal: "Normal", langTitle: "Switch language / 语言",
     cropTitle: "Crop Art", cropHint: "Scroll to zoom · Drag to pan",
     cropZoomIn: "Zoom In", cropZoomOut: "Zoom Out", cropReset: "Reset", cropCancel: "Cancel", cropConfirm: "Apply",
-    styleWb: "Card Image", styleDiy: "Effect Image",
+    styleWb: "Card Image", styleDiy: "Effect Image", loadFromWba: "Load card from WBArts",
+    saveDraft: "Save Draft", loadDraft: "Load Draft", deleteDraft: "Delete Draft",
     diyPanel: "Ability Panel", trait: "Trait", traitTitle: "Type", bgAlpha: "Text Box Opacity",
     detail1: "Skill Text", evolve: "Evolve", super: "Super Evolve", crest: "Crest",
     crestDesc: "Crest description", energy: "Energy", crestBorder: "Crest Border", crestScale: "Name Area Scale",
@@ -902,6 +904,264 @@ function autoResizeAllTextareas() {
   document.querySelectorAll('textarea').forEach(autoResizeTextarea);
 }
 
+// ---- WBArts card loading and local draft storage ------------------------
+const WBARTS_ROOT = 'https://sva.hypd.asia/';
+let wbaCards = [];
+let wbaCardsPromise = null;
+const DRAFT_DB = 'wbmaker-drafts-v1';
+
+async function fetchWba(path) {
+  const urls = [`/api/wbarts/${path}`, WBARTS_ROOT + path];
+  let lastError;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response;
+    } catch (error) { lastError = error; }
+  }
+  throw lastError || new Error('WBArts request failed');
+}
+
+async function loadWbaCards() {
+  if (wbaCardsPromise) return wbaCardsPromise;
+  wbaCardsPromise = Promise.all([
+    fetchWba('data/cards.json').then((r) => r.json()),
+    fetchWba('data/cards_stubs.json').then((r) => r.json()).catch(() => []),
+  ]).then(([cards, stubs]) => {
+    const known = new Set(cards.map((card) => card.card_id));
+    wbaCards = cards.concat((stubs || []).filter((card) => !known.has(card.card_id)));
+    return wbaCards;
+  }).catch((error) => {
+    wbaCardsPromise = null;
+    throw error;
+  });
+  return wbaCardsPromise;
+}
+
+function normalizeWbaText(text) {
+  return String(text || '')
+    .replace(/<hr\s*\/?>(?:\n)?/gi, '\n[hr]\n')
+    // WBArts Chinese text already contains the outer 【】; only preserve the
+    // keyword emphasis here so it does not become 【【keyword】】.
+    .replace(/<color=Keyword>([\s\S]*?)<\/color>/gi, '[b]$1[/b]')
+    .replace(/<b>/gi, '[b]').replace(/<\/b>/gi, '[/b]')
+    .replace(/<i>/gi, '[i]').replace(/<\/i>/gi, '[/i]')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\[b\]\[b\]([\s\S]*?)\[\/b\]\[\/b\]/g, '[b]$1[/b]')
+    .replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function cardAbilities(card) {
+  const out = { detail: '', evolve: '', super: '', crests: [] };
+  const add = (key, text) => { if (text) out[key] += (out[key] ? '\n' : '') + normalizeWbaText(text); };
+  for (const skill of card.skill_texts || []) {
+    let text = skill[`text_${currentLang}`] || skill.text_chs || skill.text_eng || '';
+    const ev = text.match(/<ev>([\s\S]*?)<\/ev>/i);
+    const sev = text.match(/<sev>([\s\S]*?)<\/sev>/i);
+    if (ev) { add('evolve', ev[1]); text = text.replace(ev[0], ''); }
+    if (sev) { add('super', sev[1]); text = text.replace(sev[0], ''); }
+    add('detail', text);
+  }
+  for (const mode of card.alt_modes || []) {
+    const text = normalizeWbaText(mode[`text_${currentLang}`] || mode.text_chs || mode.text_eng || '');
+    if (text) out.crests.push({ type: mode.type || '纹章', text });
+  }
+  return out;
+}
+
+function classByNames(card) {
+  if (Number.isInteger(card.class)) return card.class;
+  const names = CLASS_LABELS[currentLang] || CLASS_LABELS.chs;
+  const source = String(card.class || '').toLowerCase();
+  return Math.max(0, names.findIndex((name) => name.toLowerCase() === source));
+}
+
+function cardFrame(card) {
+  const kind = KIND_KEYS[card.type] || 'follower';
+  const rarity = RARITY_KEYS[card.rarity] || 'bronze';
+  return `${kind}_${rarity}`;
+}
+
+async function loadWbaArt(card) {
+  const source = card.textures?.base;
+  if (!source) return null;
+  const response = source.startsWith('http') ? await fetch(source) : await fetchWba(source);
+  if (!response.ok) throw new Error(`art HTTP ${response.status}`);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function importWbaCard(card) {
+  const abilities = cardAbilities(card);
+  field('name').value = card[`name_${currentLang}`] || card.name_chs || card.name_eng || '';
+  field('class').value = String(classByNames(card));
+  field('kind').value = String(card.type || 1);
+  field('rarity').value = String(card.rarity || 1);
+  field('special').value = '';
+  field('cost').value = card.cost == null ? '' : String(card.cost);
+  field('atk').value = card.atk == null ? '' : String(card.atk);
+  field('life').value = card.life == null ? '' : String(card.life);
+  field('trait').value = card[`tribe_name_${currentLang}`] || card.tribe_name_chs || '';
+  field('d1').value = abilities.detail;
+  field('ev').value = abilities.evolve;
+  field('super').value = abilities.super;
+  field('showEvolve').checked = !!abilities.evolve;
+  field('showSuper').checked = !!abilities.super;
+  updateKindUI();
+  resetDiyCrests(abilities.crests);
+  try {
+    artBytes = await loadWbaArt(card);
+    cropState = null;
+    document.getElementById('artLabel').textContent = `${card.card_id} · ${card.name_eng || card.name_chs}`;
+  } catch (error) {
+    artBytes = null;
+    document.getElementById('artLabel').textContent = t('artPh');
+    document.getElementById('wbaCardStatus').textContent = `Card loaded, art unavailable: ${error.message}`;
+  }
+  autoResizeAllTextareas();
+  renderPreview();
+}
+
+function resetDiyCrests(imported) {
+  const list = document.getElementById('crestList');
+  list.innerHTML = '';
+  crestBlocks = 0;
+  addCrestBlock();
+  (imported || []).forEach((item, index) => {
+    const div = index === 0 ? list.querySelector('.crest-block') : addCrestBlock();
+    div.querySelector('[data-c-enabled]').checked = true;
+    const border = Math.max(0, ['纹章', '信仰', '激奏', '结晶'].findIndex((name) => String(item.type).includes(name)));
+    div.querySelector('[data-c-border]').value = String(border);
+    div.querySelector('[data-c-desc]').value = item.text;
+  });
+}
+
+function restoreDraftCrests(crests) {
+  const list = document.getElementById('crestList');
+  list.innerHTML = '';
+  crestBlocks = 0;
+  const blocks = crests?.length ? crests : [{}];
+  blocks.forEach((saved) => {
+    const div = addCrestBlock();
+    div.querySelector('[data-c-enabled]').checked = true;
+    div.querySelector('[data-c-border]').value = String(saved.border || 0);
+    div.querySelector('[data-c-scale]').value = String(saved.scale || 1);
+    div.querySelector('[data-c-desc]').value = saved.description || '';
+    for (const slot of ['icon1', 'icon2']) {
+      const spec = saved[slot] || '';
+      const cell = div.querySelector(`[data-crest-slot="${slot}"]`);
+      cell.dataset.spec = spec;
+      if (spec.startsWith('builtin:')) {
+        const index = parseInt(spec.slice(8), 10);
+        cell.querySelector('img').src = `crests/${builtinCrests[index] || ''}.png`;
+        cell.querySelector('img').style.visibility = 'visible';
+      } else if (spec === 'upload' && saved[`${slot}_data`]) {
+        const store = crestUploads.get(div) || {};
+        store[slot] = dataToBytes(saved[`${slot}_data`]);
+        crestUploads.set(div, store);
+        cell.querySelector('.slot-tag').textContent = t('uploadCrest');
+      }
+    }
+  });
+}
+
+function openDraftDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DRAFT_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('drafts');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function bytesToData(bytes) { return bytes ? bytesToBase64(bytes) : null; }
+function dataToBytes(data) {
+  if (!data) return null;
+  const bin = atob(data); const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function draftPayload() {
+  const cfg = collectConfig();
+  return {
+    cfg, style: currentStyle, lang: currentLang, crop: cropState,
+    art: bytesToData(artBytes), savedAt: Date.now(),
+  };
+}
+
+async function saveDraft() {
+  const db = await openDraftDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('drafts', 'readwrite');
+    tx.objectStore('drafts').put(draftPayload(), 'current');
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+  document.getElementById('wbaCardStatus').textContent = t('saveDraft') + ' ✓';
+}
+
+async function readDraft() {
+  const db = await openDraftDb();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction('drafts').objectStore('drafts').get('current');
+    req.onsuccess = () => resolve(req.result || null); req.onerror = () => reject(req.error);
+  });
+}
+
+async function applyDraft(draft) {
+  if (!draft?.cfg) return false;
+  currentStyle = draft.style === 'diy' ? 'diy' : 'wb';
+  if (draft.lang && LANG_NAMES[draft.lang]) currentLang = draft.lang;
+  const cfg = draft.cfg;
+  const values = { name: cfg.name, class: cfg.class, kind: cfg.kind, rarity: cfg.rarity,
+    cost: cfg.cost, atk: cfg.atk, life: cfg.life, trait: cfg.trait_text,
+    d1: cfg.detail1, ev: cfg.evolve, super: cfg.super_evolve,
+    illustrator: cfg.illustrator, diy: cfg.diy };
+  for (const [name, value] of Object.entries(values)) if (value !== undefined && field(name)) field(name).value = String(value);
+  for (const [name, value] of Object.entries({ showEvolve: cfg.show_evolve, showSuper: cfg.show_super,
+    showIllustrator: cfg.show_illustrator, showDiy: cfg.show_diy })) if (value !== undefined) field(name).checked = !!value;
+  if (cfg.bg_alpha !== undefined) field('bgAlpha').value = String(Math.round(cfg.bg_alpha * 100));
+  for (const key of Object.keys(DIY_SIZES)) if (cfg[`${key}_size`] !== undefined) DIY_SIZES[key] = Math.round(cfg[`${key}_size`] / 0.4);
+  restoreDraftCrests(cfg.crests);
+  cropState = draft.crop || null;
+  artBytes = dataToBytes(draft.art);
+  applyStyleUI(); updateKindUI(); rebuildRarity(); refreshSizeLabels(); autoResizeAllTextareas();
+  renderPreview();
+  return true;
+}
+
+async function deleteDraft() {
+  const db = await openDraftDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('drafts', 'readwrite'); tx.objectStore('drafts').delete('current');
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+  document.getElementById('wbaCardStatus').textContent = t('deleteDraft') + ' ✓';
+}
+
+function bindWbaAndDrafts() {
+  const search = document.getElementById('wbaCardSearch');
+  const results = document.getElementById('wbaCardResults');
+  const showResults = () => {
+    const query = search.value.trim().toLowerCase(); results.innerHTML = '';
+    if (!query) { results.hidden = true; return; }
+    wbaCards.filter((card) => String(card.card_id).includes(query) ||
+      [card.name_chs, card.name_eng, card.name_jpn, card.name_kor, card.name_cht].some((name) => String(name || '').toLowerCase().includes(query)))
+      .slice(0, 25).forEach((card) => {
+        const button = document.createElement('button'); button.type = 'button';
+        button.textContent = `${card.name_chs || card.name_eng} · ${card.card_id}`;
+        button.addEventListener('click', () => { results.hidden = true; importWbaCard(card); });
+        results.appendChild(button);
+      });
+    results.hidden = !results.children.length;
+  };
+  search.addEventListener('focus', () => loadWbaCards().then(showResults).catch((e) => { document.getElementById('wbaCardStatus').textContent = `WBArts load failed: ${e.message}`; }));
+  search.addEventListener('input', showResults);
+  document.getElementById('btnSaveDraft').addEventListener('click', () => saveDraft().catch((e) => { document.getElementById('wbaCardStatus').textContent = e.message; }));
+  document.getElementById('btnLoadDraft').addEventListener('click', () => readDraft().then(applyDraft).then((ok) => { if (ok) document.getElementById('wbaCardStatus').textContent = t('loadDraft') + ' ✓'; }).catch((e) => { document.getElementById('wbaCardStatus').textContent = e.message; }));
+  document.getElementById('btnDeleteDraft').addEventListener('click', () => deleteDraft().catch((e) => { document.getElementById('wbaCardStatus').textContent = e.message; }));
+}
+
 // 事件委托：覆盖动态添加的纹章块
 document.addEventListener('input', (e) => {
   if (e.target && e.target.tagName === 'TEXTAREA') autoResizeTextarea(e.target);
@@ -1227,6 +1487,7 @@ async function main() {
   addCrestBlock();
   await cardPromise;
   bindEvents();
+  bindWbaAndDrafts();
   renderPreview();
 }
 

@@ -11,7 +11,7 @@ export const FONT_MAP = {
   cht: 'DFT_W7-930.ttf',
   jpn: 'MOC-KaiminTsuki-B.otf',
   kor: 'NanumGothic-ExtraBold.ttf',
-  eng: 'MOC-KaiminTsuki-B.otf',
+  eng: 'Memento-SemiBold.ttf',
 };
 export const NUMBER_FONT = 'FOT-TsukuAOldMin-Pr6-E.digits.otf'; // 筑紫明朝（数字字体）
 // 署名行（画师/脚注）字体：Noto Sans CJK 各语言版本（按需分块）

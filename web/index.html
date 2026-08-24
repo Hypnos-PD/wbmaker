@@ -29,6 +29,19 @@
     <form id="cardForm" class="panel form" autocomplete="off">
       <!-- 基础（两种模式共享） -->
       <section>
+        <div class="card-tools">
+          <label class="card-search">
+            <span data-i18n="loadFromWba">从 WBArts 载入卡牌</span>
+            <input id="wbaCardSearch" type="search" autocomplete="off" placeholder="卡名或卡牌 ID">
+            <div id="wbaCardResults" class="card-search-results" hidden></div>
+          </label>
+          <div class="draft-actions">
+            <button id="btnSaveDraft" class="mini" type="button" data-i18n="saveDraft">保存草稿</button>
+            <button id="btnLoadDraft" class="mini" type="button" data-i18n="loadDraft">载入草稿</button>
+            <button id="btnDeleteDraft" class="mini" type="button" data-i18n="deleteDraft">删除草稿</button>
+          </div>
+          <div id="wbaCardStatus" class="card-tool-status" aria-live="polite"></div>
+        </div>
         <h2 data-i18n="basicInfo">基础信息</h2>
         <label><span data-i18n="cardName">卡名</span>
           <input type="text" name="name" placeholder="卡牌名称" data-i18n-ph="cardNamePh">

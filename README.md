@@ -69,6 +69,12 @@ python3 -m http.server -d web 8000
 # 浏览器打开 http://localhost:8000
 ```
 
+从 WBArts 载入卡牌时需要同源代理（WBArts 未开放跨域读取），开发时使用：
+
+```bash
+python3 tools/dev-server.py
+```
+
 > 需通过 HTTP 访问（ES Module + wasm fetch）；直接双击 `file://` 打开可能因 CORS 无法加载 wasm。
 
 ## 多端打包（桌面 + 移动）
