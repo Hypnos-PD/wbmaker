@@ -4,14 +4,14 @@
 
 ## 功能
 
-### 单卡图（默认模式，官方 WB 卡）
+### 单卡图（默认模式）
 
 - **官方 WB 卡框**：沿用 WBArts / wbunpacker 的 `frame2d_*.png` 边框（随从/护符/法术 × 铜/银/金/虹，外加 `style_101` 等特殊框）。
 - **权威版式**：渲染坐标与 `wbunpacker/config/render.toml` 一致（782×1024 画布）。
 - **文字**：卡名 + 数字，白字黑投影、超宽自动缩小。
 - **导出**：PNG（1x/2x/3x）。
 
-### 效果图（DIY 模式，称号带与描述面板移植自「欧丝的印卡机」sv-byd-diy）
+### 效果图
 
 - 1920×1080 产物：顶部称号带 + 左侧卡牌 + 右侧描述面板，黑底导出（1x）。
 - **卡牌部分完全复用单卡图渲染管线**（官方卡框/数字/立绘裁切，同一个 `render` 函数，按 `CARD_SCALE` 缩放后摆放在 `CARD_POS_X/Y`）。
@@ -96,16 +96,9 @@ WebView 加载 localhost（自定义协议下 module worker 在 WKWebView 上不
 导出 PNG 走壳的 `/api/save_png`（系统保存对话框）。依赖、签名、移动端专项
 配置详见 **[docs/PACKAGING.md](docs/PACKAGING.md)**。
 
-## 无浏览器冒烟测试
-
-```bash
-cd web && node test-node.mjs
-# 生成 /tmp/wbmaker_wb.png（官方卡）与 /tmp/wbmaker_diy.png（DIY 卡）
-```
-
 ## 字体与加载策略
 
-字体采用与 shadowverse-wb.com 相同的 **unicode-range 分块按需加载**：
+字体采用**unicode-range 分块按需加载**：
 每个字体被切成 128 字/块的 otf 分块（`tools/split_fonts.py` 生成，
 清单 `web/font-chunks.json`），前端根据当前卡牌实际用到的字符只拉取
 对应的块，wasm 端逐字回退渲染。整字体文件仅作分块失败时的兜底。
@@ -113,12 +106,9 @@ cd web && node test-node.mjs
 
 ## 字体
 
-- **卡名/正文**：按语言从游戏本地安装包 `ShadowverseWB_Data/data.unity3d`（Steam，非 CDN）解包得到的矢量字体：简中 `arweibeigbpro_bd.otf`、繁中 `DFT_W7-930.ttf`、日文 `MOC-KaiminTsuki-B.otf`、韩文 `NanumGothic-ExtraBold.ttf`、英文 `MOC-KaiminTsuki-B.otf`。DIY 模式的正文复用各语言标题字体。
+- **卡名/正文**：矢量字体：简中 `arweibeigbpro_bd.otf`、繁中 `DFT_W7-930.ttf`、日文 `MOC-KaiminTsuki-B.otf`、韩文 `NanumGothic-ExtraBold.ttf`、英文 `MOC-KaiminTsuki-B.otf`。DIY 模式的正文复用各语言标题字体。
 - **数字**（费用/攻击/体力）：全语言统一用筑紫明朝数字 `FOT-TsukuAOldMin-Pr6-E.digits.otf`。
 - 字体为**运行时按需加载**（浏览器 fetch `web/fonts/` 后注册给 wasm），不占 wasm 体积；DIY 素材预处理压缩后内嵌进 wasm。
 
-## 与「欧丝的印卡机」的关系
-
-DIY 模式的版式与素材移植自 sv-byd-diy（Godot 项目），并按 wbm 的权威口径修正了若干问题（英文卡名改用 MOC-KaiminTsuki-B、数字改用筑紫明朝、正文不再用魏碑、清理 `brone` 拼写与失效逻辑）。两端的卡牌字段一一对应，但暂不互通数据文件。
 
 > [Cygames](https://www.cygames.co.jp/) 保留游戏内所有图像、音频及商标版权。本工具为非官方粉丝用途，边框/图标/字体素材来自游戏客户端解包；DIY 风格素材来自「欧丝的印卡机」。
